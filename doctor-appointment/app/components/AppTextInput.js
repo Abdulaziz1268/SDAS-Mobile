@@ -1,5 +1,6 @@
 import { View, TextInput, StyleSheet } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
+import colors from "../config/colors"
 
 export default function AppTextInput({
   icon,
@@ -15,21 +16,22 @@ export default function AppTextInput({
         <MaterialCommunityIcons
           name={icon}
           size={25}
-          color="gray"
+          color={colors.gray}
           style={styles.icon}
         />
       )}
       <TextInput
         placeholder={placeholder}
         style={styles.input}
-        cursorColor="brown"
+        cursorColor={colors.blue}
+        autoCapitalize="none"
         {...otherProps}
       />
       {viewIcon && (
         <MaterialCommunityIcons
           name={viewIcon}
           size={25}
-          color="gray"
+          color={colors.gray}
           style={styles.viewIcon}
           onPress={onPress}
         />
