@@ -12,7 +12,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/logo.jp",
+      "image": "./assets/logo.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#e3eeff"
     },
