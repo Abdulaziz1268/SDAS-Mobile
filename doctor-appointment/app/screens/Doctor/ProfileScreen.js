@@ -1,34 +1,47 @@
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native"
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ToastAndroid,
+  Alert,
+} from "react-native"
 import colors from "../../config/colors"
-import * as updates from "expo-updates"
-import Toast from "react-native-toast-message"
+import * as Updates from "expo-updates"
 
 const ProfileScreen = () => {
   const checkForUpdates = async () => {
     try {
-      const update = await updates.checkForUpdateAsync()
+      const update = await Updates.checkForUpdateAsync()
       if (update.isAvailable) {
         Alert.alert("Update Available!", "Do you want to update now?", [
-          { text: "Later", style: "cancel" },
+          {
+            text: "Later",
+            onPress: () =>
+              ToastAndroid.show("update postponed", ToastAndroid.SHORT),
+          },
           {
             text: "Update",
             onPress: async () => {
+              ToastAndroid.show("update started", ToastAndroid.SHORT)
               try {
-                await updates.fetchUpdateAsync()
-                await updates.reloadAsync()
-                Toast.show({ type: "success", text1: "successfully updated" })
+                await Updates.fetchUpdateAsync()
+                await Updates.reloadAsync()
+                ToastAndroid.show("successfully updated", ToastAndroid.SHORT)
               } catch (error) {
                 Alert.alert("Update failed!", "please try again later.")
                 console.log(error)
-                Toast.show({ type: "error", text1: "update failed" })
+                ToastAndroid.show("update failed", ToastAndroid.SHORT)
               }
             },
           },
         ])
       }
+      if (!update.isAvailable)
+        ToastAndroid.show("you up is up to date", ToastAndroid.SHORT)
     } catch (error) {
       console.log("Error checking for updates", error)
-      Toast.show({ type: "error", text1: "error checking for updates" })
+      ToastAndroid.show("error checking for updates", ToastAndroid.SHORT)
     }
   }
   return (
