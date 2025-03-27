@@ -2,7 +2,8 @@
   "expo": {
     "updates": {
       "enabled": true,
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/2d83ffae-6d46-447f-b6b2-9b5ca00fe2fd"
     },
     "name": "Dr. Appointment",
     "slug": "doctor-appointment",
@@ -33,6 +34,9 @@
       "eas": {
         "projectId": "2d83ffae-6d46-447f-b6b2-9b5ca00fe2fd"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
