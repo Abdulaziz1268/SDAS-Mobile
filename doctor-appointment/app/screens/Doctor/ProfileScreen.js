@@ -38,10 +38,13 @@ const ProfileScreen = () => {
         ])
       }
       if (!update.isAvailable)
-        ToastAndroid.show("you up is up to date", ToastAndroid.SHORT)
+        ToastAndroid.show("your app is up to date", ToastAndroid.SHORT)
     } catch (error) {
       console.log("Error checking for updates", error)
-      ToastAndroid.show("error checking for updates", ToastAndroid.SHORT)
+      ToastAndroid.show(
+        `error checking for updates ${error.message}`,
+        ToastAndroid.SHORT
+      )
     }
   }
   return (

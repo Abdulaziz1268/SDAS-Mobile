@@ -116,6 +116,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: "red",
+    width: "100%",
+    paddingLeft: 20,
   },
   fields: {
     marginVertical: 10,

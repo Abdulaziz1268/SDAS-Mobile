@@ -3,7 +3,7 @@ import { createContext, useState } from "react"
 export const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
-  const [doctorToken, setDoctorToken] = useState(true)
+  const [doctorToken, setDoctorToken] = useState(false)
   const [patientToken, setPatientToken] = useState(false)
 
   return (
