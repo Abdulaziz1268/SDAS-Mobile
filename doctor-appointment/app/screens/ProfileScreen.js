@@ -1,0 +1,341 @@
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ToastAndroid,
+  Alert,
+  Image,
+  Switch,
+} from "react-native"
+import { useContext, useState } from "react"
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
+import * as Updates from "expo-updates"
+import * as LocalAuthentication from "expo-local-authentication"
+import {
+  Menu,
+  MenuOption,
+  MenuOptions,
+  MenuTrigger,
+} from "react-native-popup-menu"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+
+// import colors from "../config/colors"
+import { useTheme } from "../Contexts/ThemeContext"
+import Photo from "../../assets/noUser.jpg"
+import { PrefContext } from "../Contexts/PrefContext"
+import { AuthContext } from "../Contexts/AuthContext"
+import CustomAlert from "../components/CustomAlert"
+import { UserContext } from "../Contexts/UserContext"
+
+const name = "Abdulaziz Musa"
+
+const ProfileScreen = ({ navigation }) => {
+  const { allowFP, setAllowFP } = useContext(PrefContext)
+  const { setPatientToken, setDoctorToken } = useContext(AuthContext)
+  // const { userData } = useContext(UserContext)
+  const { colors, toggleTheme, isDark } = useTheme()
+  const [showAlert, setShowAlert] = useState(false)
+
+  // console.log(userData)
+
+  const toggleFingerprint = async () => {
+    const hasHardware = await LocalAuthentication.hasHardwareAsync()
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync()
+
+    if (!hasHardware || !isEnrolled) {
+      return ToastAndroid.show(
+        "Biometrics not available or not enrolled",
+        ToastAndroid.SHORT
+      )
+    }
+    setAllowFP((prevState) => !prevState)
+  }
+
+  // const toggleTheme = () => {
+  //   setDarkTheme((prevState) => !prevState)
+  // }
+
+  const checkForUpdates = async () => {
+    try {
+      const update = await Updates.checkForUpdateAsync()
+      if (update.isAvailable) {
+        Alert.alert("Update Available!", "Do you want to update now?", [
+          {
+            text: "Later",
+            onPress: () =>
+              ToastAndroid.show("update postponed", ToastAndroid.SHORT),
+          },
+          {
+            text: "Update",
+            onPress: async () => {
+              ToastAndroid.show("update started", ToastAndroid.SHORT)
+              try {
+                await Updates.fetchUpdateAsync()
+                await Updates.reloadAsync()
+                ToastAndroid.show("successfully updated", ToastAndroid.SHORT)
+              } catch (error) {
+                Alert.alert("Update failed!", "please try again later.")
+                console.log(error)
+                ToastAndroid.show("update failed", ToastAndroid.SHORT)
+              }
+            },
+          },
+        ])
+      }
+      if (!update.isAvailable)
+        ToastAndroid.show("your app is up to date", ToastAndroid.SHORT)
+    } catch (error) {
+      console.log("Error checking for updates", error)
+      ToastAndroid.show(
+        `error checking for updates ${error.message}`,
+        ToastAndroid.SHORT
+      )
+    }
+  }
+
+  const logout = async () => {
+    // Alert.alert("Logout", "are you sure to logout", [
+    //   {
+    //     text: "Cancel",
+    //     onPress: () => ToastAndroid.show("cancelled", ToastAndroid.SHORT),
+    //     style: "cancel",
+    //   },
+    //   {
+    //     text: "yes",
+    //     onPress: async () => {
+    await AsyncStorage.removeItem("token")
+    setDoctorToken(false)
+    setPatientToken(false)
+    ToastAndroid.show("logged out", ToastAndroid.SHORT)
+    //     },
+    //   },
+    // ])
+  }
+
+  return (
+    <View
+      style={[styles.profileContainer, { backgroundColor: colors.lightblue }]}
+    >
+      <View style={styles.hero}>
+        <Image source={Photo} style={styles.heroImage} />
+        <View style={styles.leftContainer}>
+          <View style={styles.threeDots}>
+            <MaterialCommunityIcons
+              name="square-edit-outline"
+              size={25}
+              onPress={() => navigation.navigate("EditProfile")}
+              color={colors.text}
+            />
+            <Menu>
+              <MenuTrigger
+                customStyles={{
+                  TriggerTouchableComponent: TouchableOpacity,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="dots-vertical"
+                  size={25}
+                  color={colors.text}
+                />
+              </MenuTrigger>
+              <MenuOptions
+                customStyles={{
+                  optionsContainer: {
+                    width: 125,
+                    marginTop: 40,
+                    borderRadius: 10,
+                    overflow: "hidden",
+                    backgroundColor: colors.white,
+                  },
+                  optionWrapper: {
+                    padding: 10,
+                  },
+                  optionText: {
+                    paddingLeft: 10,
+                    color: colors.text,
+                  },
+                }}
+              >
+                <MenuOption
+                  onSelect={() => navigation.navigate("About")}
+                  text="About"
+                />
+              </MenuOptions>
+            </Menu>
+          </View>
+          <Text style={[styles.heroText, { color: colors.text }]}>{name}</Text>
+        </View>
+      </View>
+      <TouchableOpacity
+        style={[styles.listItem, { backgroundColor: colors.white }]}
+        onPress={() => navigation.navigate("ChangePassword")}
+      >
+        <MaterialCommunityIcons
+          name="lock"
+          color={colors.blue}
+          size={25}
+          style={styles.icon}
+        />
+        <Text style={{ color: colors.text }}>Change Password</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.listItem, { backgroundColor: colors.white }]}
+      >
+        <MaterialCommunityIcons
+          name="fingerprint"
+          color={colors.blue}
+          size={25}
+          style={styles.icon}
+        />
+        <Text style={{ color: colors.text }}>Biometrics </Text>
+        <Switch
+          trackColor={{ false: colors.gray, true: colors.blue }}
+          thumbColor={colors.lightblue}
+          onValueChange={toggleFingerprint}
+          value={allowFP}
+          style={styles.switch}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.listItem, { backgroundColor: colors.white }]}
+      >
+        <Ionicons
+          name="moon-sharp"
+          color={colors.blue}
+          size={25}
+          style={styles.icon}
+        />
+        <Text style={{ color: colors.text }}>Night Mode </Text>
+        <Switch
+          trackColor={{ false: colors.gray, true: colors.blue }}
+          thumbColor={colors.lightblue}
+          onValueChange={toggleTheme}
+          value={isDark}
+          style={styles.switch}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={checkForUpdates}
+        style={[styles.listItem, { backgroundColor: colors.white }]}
+      >
+        <MaterialCommunityIcons
+          name="update"
+          color={colors.blue}
+          size={25}
+          style={styles.icon}
+        />
+        <Text style={{ color: colors.text }}>Check for update</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => setShowAlert(true)}
+        style={[styles.listItem, { backgroundColor: colors.white }]}
+      >
+        <MaterialCommunityIcons
+          name="logout"
+          color={colors.blue}
+          size={25}
+          style={styles.icon}
+        />
+        <Text style={{ color: colors.text }}>Log Out</Text>
+      </TouchableOpacity>
+      {showAlert && (
+        <CustomAlert
+          visible={showAlert}
+          message="Are you sure to logout!"
+          onSave={() => {
+            setShowAlert(false)
+            logout()
+          }}
+          onClose={() => setShowAlert(false)}
+        />
+      )}
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  // header: {
+  //   fontSize: 28,
+  //   marginLeft: "10%",
+  //   marginTop: "5%",
+  //   marginBottom: 15,
+  //   fontWeight: "bold",
+  //   color: colors.blue,
+  // },
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    width: "95%",
+    // position: "relative",
+  },
+  heroImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    marginVertical: 30,
+    marginHorizontal: 20,
+  },
+  heroText: {
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  icon: {
+    paddingRight: 10,
+  },
+  leftContainer: {
+    height: 150,
+    flex: 1,
+  },
+  // menu: {
+  //   backgroundColor: colors.white,
+  //   zIndex: 100,
+  // },
+  // menuItem: {
+  //   backgroundColor: colors.white,
+  //   margin: 0,
+  // },
+  profileContainer: {
+    height: "100%",
+    width: "100%",
+    alignItems: "center",
+  },
+  switch: {
+    marginLeft: "auto",
+    marginRight: 10,
+  },
+  listItem: {
+    flexDirection: "row",
+
+    height: 70,
+    alignItems: "center",
+    paddingLeft: 20,
+    marginVertical: 5,
+    borderRadius: 15,
+    width: "95%",
+  },
+  threeDots: {
+    height: "40%",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+})
+
+const optionsStyles = {
+  optionsContainer: {
+    width: 125,
+    marginTop: 40,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  optionWrapper: {
+    padding: 10,
+  },
+  optionText: {
+    paddingLeft: 10,
+  },
+}
+
+export default ProfileScreen

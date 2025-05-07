@@ -1,37 +1,41 @@
-import { StyleSheet } from "react-native"
-import AppSafeAreaView from "./app/components/AppSafeAreaView"
-import AppButton from "./app/components/AppButton"
-import AppTextInput from "./app/components/AppTextInput"
-import LoginScreen from "./app/screens/LoginScreen"
-import RegisterScreen from "./app/screens/RegisterScreen"
-import DashboardScreen from "./app/screens/Doctor/DashboardScreen"
+import { StyleSheet, Appearance } from "react-native"
 import { NavigationContainer } from "@react-navigation/native"
-import { DoctorTabNavigator } from "./app/routes/DoctorRoutes"
 import { useContext } from "react"
+import { MenuProvider } from "react-native-popup-menu"
+
+import AppSafeAreaView from "./app/components/AppSafeAreaView"
+import { DoctorStackNavigator } from "./app/routes/DoctorRoutes"
+import { PatientStackNavigator } from "./app/routes/PatientRoutes"
 import { AuthContext, AuthProvider } from "./app/Contexts/AuthContext"
 import AuthStackNavigator from "./app/routes/AuthRoutes"
 import { PrefProvider } from "./app/Contexts/PrefContext"
+import { ThemeProvider } from "./app/Contexts/ThemeContext"
 
 export default function App() {
   return (
-    <AppSafeAreaView>
-      <PrefProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </PrefProvider>
-    </AppSafeAreaView>
+    <ThemeProvider>
+      <AppSafeAreaView>
+        <MenuProvider>
+          <PrefProvider>
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
+          </PrefProvider>
+        </MenuProvider>
+      </AppSafeAreaView>
+    </ThemeProvider>
   )
 }
 
 const AppRoutes = () => {
   const { doctorToken, patientToken } = useContext(AuthContext)
+
   return (
-    <NavigationContainer>
-      {doctorToken ? (
-        <DoctorTabNavigator />
-      ) : patientToken ? (
-        <PatientTabNavigator />
+    <NavigationContainer style={styles.container}>
+      {patientToken ? (
+        <PatientStackNavigator />
+      ) : doctorToken ? (
+        <DoctorStackNavigator />
       ) : (
         <AuthStackNavigator />
       )}
@@ -41,10 +45,10 @@ const AppRoutes = () => {
 
 const styles = StyleSheet.create({
   container: {
-    // backgroundColor: "blue",
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    // backgroundColor: colors.lightblue,
+    // flex: 1,
+    // alignItems: "center",
+    // justifyContent: "center",
   },
   button: {
     backgroundColor: "red",

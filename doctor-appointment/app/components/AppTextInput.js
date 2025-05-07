@@ -1,6 +1,7 @@
 import { View, TextInput, StyleSheet } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import colors from "../config/colors"
+import { useTheme } from "../Contexts/ThemeContext"
+// import colors from "../config/colors"
 
 export default function AppTextInput({
   icon,
@@ -10,8 +11,11 @@ export default function AppTextInput({
   onPress,
   ...otherProps
 }) {
+  const { colors } = useTheme()
   return (
-    <View style={[styles.inputContainer, style]}>
+    <View
+      style={[styles.inputContainer, style, { backgroundColor: colors.white }]}
+    >
       {icon && (
         <MaterialCommunityIcons
           name={icon}
@@ -22,9 +26,10 @@ export default function AppTextInput({
       )}
       <TextInput
         placeholder={placeholder}
-        style={styles.input}
+        style={[styles.input, { color: colors.text }]}
         cursorColor={colors.blue}
         autoCapitalize="none"
+        placeholderTextColor={colors.text}
         {...otherProps}
       />
       {viewIcon && (
@@ -54,7 +59,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "lightgray",
+
     width: "100%",
     borderRadius: 30,
   },
