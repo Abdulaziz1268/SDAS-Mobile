@@ -29,15 +29,14 @@ const PatientTabNavigator = () => {
         tabBarInactiveBackgroundColor: colors.white,
         tabBarActiveBackgroundColor: colors.lightblue,
         tabBarStyle: {
-          borderRadius: 40,
+          // borderTopLeftRadius: 40,
+          // borderTopRightRadius: 40,
           height: 60,
           position: "absolute",
-          bottom: 10,
           right: 10,
           left: 10,
-          width: "90%",
           borderTopWidth: 0,
-          alignSelf: "center",
+          elevation: 20,
         },
       }}
     >

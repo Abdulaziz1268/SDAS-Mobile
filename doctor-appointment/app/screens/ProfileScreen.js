@@ -8,7 +8,7 @@ import {
   Image,
   Switch,
 } from "react-native"
-import { useContext, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import * as Updates from "expo-updates"
 import * as LocalAuthentication from "expo-local-authentication"
@@ -27,17 +27,24 @@ import { PrefContext } from "../Contexts/PrefContext"
 import { AuthContext } from "../Contexts/AuthContext"
 import CustomAlert from "../components/CustomAlert"
 import { UserContext } from "../Contexts/UserContext"
+import { useFocusEffect } from "@react-navigation/native"
 
-const name = "Abdulaziz Musa"
+const initialData = {
+  name: "no-user",
+  image: Photo,
+}
 
 const ProfileScreen = ({ navigation }) => {
   const { allowFP, setAllowFP } = useContext(PrefContext)
   const { setPatientToken, setDoctorToken } = useContext(AuthContext)
-  // const { userData } = useContext(UserContext)
+  const { userData } = useContext(UserContext)
   const { colors, toggleTheme, isDark } = useTheme()
   const [showAlert, setShowAlert] = useState(false)
+  const [data, setData] = useState(initialData)
 
-  // console.log(userData)
+  useEffect(() => {
+    if (userData) setData(userData)
+  }, [userData])
 
   const toggleFingerprint = async () => {
     const hasHardware = await LocalAuthentication.hasHardwareAsync()
@@ -51,10 +58,6 @@ const ProfileScreen = ({ navigation }) => {
     }
     setAllowFP((prevState) => !prevState)
   }
-
-  // const toggleTheme = () => {
-  //   setDarkTheme((prevState) => !prevState)
-  // }
 
   const checkForUpdates = async () => {
     try {
@@ -95,22 +98,19 @@ const ProfileScreen = ({ navigation }) => {
   }
 
   const logout = async () => {
-    // Alert.alert("Logout", "are you sure to logout", [
-    //   {
-    //     text: "Cancel",
-    //     onPress: () => ToastAndroid.show("cancelled", ToastAndroid.SHORT),
-    //     style: "cancel",
-    //   },
-    //   {
-    //     text: "yes",
-    //     onPress: async () => {
-    await AsyncStorage.removeItem("token")
-    setDoctorToken(false)
-    setPatientToken(false)
-    ToastAndroid.show("logged out", ToastAndroid.SHORT)
-    //     },
-    //   },
-    // ])
+    try {
+      await AsyncStorage.removeItem("Ptoken")
+      await AsyncStorage.removeItem("Dtoken")
+      setDoctorToken(false)
+      setPatientToken(false)
+      ToastAndroid.show("logged out", ToastAndroid.SHORT)
+    } catch (error) {
+      console.log(error)
+      ToastAndroid.show(
+        "something went wrong! Please try again.",
+        ToastAndroid.SHORT
+      )
+    }
   }
 
   return (
@@ -118,7 +118,14 @@ const ProfileScreen = ({ navigation }) => {
       style={[styles.profileContainer, { backgroundColor: colors.lightblue }]}
     >
       <View style={styles.hero}>
-        <Image source={Photo} style={styles.heroImage} />
+        <Image
+          source={
+            typeof data.image === "string" && data.image
+              ? { uri: data.image }
+              : Photo
+          }
+          style={styles.heroImage}
+        />
         <View style={styles.leftContainer}>
           <View style={styles.threeDots}>
             <MaterialCommunityIcons
@@ -164,7 +171,9 @@ const ProfileScreen = ({ navigation }) => {
               </MenuOptions>
             </Menu>
           </View>
-          <Text style={[styles.heroText, { color: colors.text }]}>{name}</Text>
+          <Text style={[styles.heroText, { color: colors.text }]}>
+            {data.name}
+          </Text>
         </View>
       </View>
       <TouchableOpacity

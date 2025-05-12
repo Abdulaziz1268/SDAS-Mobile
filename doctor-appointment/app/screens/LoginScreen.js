@@ -60,7 +60,7 @@ export default function LoginScreen({ navigation }) {
               const { data } = await api.post("/user/api/user-login", values)
               if (data.success) {
                 const token = data.token
-                await AsyncStorage.setItem("token", token)
+                await AsyncStorage.setItem("Ptoken", token)
                 setPatientToken(true)
                 console.log("logged in successfully")
                 ToastAndroid.show(data.message, ToastAndroid.SHORT)
@@ -69,7 +69,7 @@ export default function LoginScreen({ navigation }) {
               const { data } = await api.post("/doctor/api/login", values)
               if (data.success) {
                 const token = data.dtoken
-                await AsyncStorage.setItem("token", token)
+                await AsyncStorage.setItem("Dtoken", token)
                 setDoctorToken(true)
                 ToastAndroid.show(data.message, ToastAndroid.SHORT)
               }

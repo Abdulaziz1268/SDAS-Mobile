@@ -10,17 +10,20 @@ import { AuthContext, AuthProvider } from "./app/Contexts/AuthContext"
 import AuthStackNavigator from "./app/routes/AuthRoutes"
 import { PrefProvider } from "./app/Contexts/PrefContext"
 import { ThemeProvider } from "./app/Contexts/ThemeContext"
+import { UserProvider } from "./app/Contexts/UserContext"
 
 export default function App() {
   return (
     <ThemeProvider>
       <AppSafeAreaView>
         <MenuProvider>
-          <PrefProvider>
-            <AuthProvider>
-              <AppRoutes />
-            </AuthProvider>
-          </PrefProvider>
+          <UserProvider>
+            <PrefProvider>
+              <AuthProvider>
+                <AppRoutes />
+              </AuthProvider>
+            </PrefProvider>
+          </UserProvider>
         </MenuProvider>
       </AppSafeAreaView>
     </ThemeProvider>

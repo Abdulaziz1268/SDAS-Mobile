@@ -1,4 +1,4 @@
-import { View, TextInput, StyleSheet } from "react-native"
+import { View, TextInput, StyleSheet, Text } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTheme } from "../Contexts/ThemeContext"
 // import colors from "../config/colors"
@@ -9,6 +9,7 @@ export default function AppTextInput({
   style,
   viewIcon,
   onPress,
+  inputName,
   ...otherProps
 }) {
   const { colors } = useTheme()
@@ -23,6 +24,18 @@ export default function AppTextInput({
           color={colors.gray}
           style={styles.icon}
         />
+      )}
+      {inputName && (
+        <Text
+          style={{
+            color: colors.blue,
+            fontSize: 18,
+            marginLeft: 10,
+            width: 80,
+          }}
+        >
+          {inputName}
+        </Text>
       )}
       <TextInput
         placeholder={placeholder}

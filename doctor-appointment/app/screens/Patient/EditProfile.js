@@ -14,6 +14,7 @@ import {
   ToastAndroid,
   TouchableOpacity,
   PlatformColor,
+  ActivityIndicator,
 } from "react-native"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import * as ImagePicker from "expo-image-picker"
@@ -22,10 +23,14 @@ import * as Yup from "yup"
 import AppTextInput from "../../components/AppTextInput"
 import AppSafeAreaView from "../../components/AppSafeAreaView"
 import AppButton from "../../components/AppButton"
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 // import colors from "../../config/colors"
 import picture from "../../../assets/noUser.jpg"
 import { useTheme } from "../../Contexts/ThemeContext"
+import { UserContext } from "../../Contexts/UserContext"
+import api from "../../config/api"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import LottieView from "lottie-react-native"
 
 const validationSchema = Yup.object().shape({
   name: Yup.string().required().min(3).label("Name"),
@@ -33,18 +38,10 @@ const validationSchema = Yup.object().shape({
   dob: Yup.date().required().label("Date of Birth"),
   address: Yup.string().required().label("Address"),
   phone: Yup.string()
-    .required("Phone number is required")
+    // .required("Phone number is required")
     .matches(/^(\+251|0)?9\d{8}$/, "Invalid phone number format")
     .label("Phone number"),
 })
-
-const dummyInfo = {
-  name: "abdu",
-  gender: "male",
-  dob: Date.now(),
-  address: "Addis Ababa",
-  phone: "0929247282",
-}
 
 export default function EditProfile({ navigation }) {
   const { colors } = useTheme()
@@ -52,7 +49,8 @@ export default function EditProfile({ navigation }) {
   const [status, requestPermission] = ImagePicker.useMediaLibraryPermissions()
   const [dateTouched, setDateTouched] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
-
+  const { userData } = useContext(UserContext)
+  console.log(userData)
   useEffect(() => {
     if (!status?.granted) requestPermission()
   }, [])
@@ -77,6 +75,23 @@ export default function EditProfile({ navigation }) {
       ToastAndroid.show(error.message, ToastAndroid.SHORT)
     }
   }
+
+  const getImageInfo = (uri) => {
+    const extension = uri.split(".").pop()
+    const mimeType =
+      extension === "png"
+        ? "image/png"
+        : extension === "jpg" || extension === "jpeg"
+        ? "image/jpeg"
+        : "application/octet-stream"
+
+    return {
+      uri,
+      type: mimeType,
+      name: `profile.${extension}`,
+    }
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.lightblue }]}>
       <View style={styles.cheveron}>
@@ -88,153 +103,216 @@ export default function EditProfile({ navigation }) {
           style={styles.icon}
         />
       </View>
+      {userData ? (
+        <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+          <Formik
+            initialValues={{
+              name: userData.name,
+              gender: userData.gender,
+              dob: userData.dob,
+              address: userData.address,
+              phone: userData.phone,
+            }}
+            onSubmit={async (values) => {
+              const formData = new FormData()
+              formData.append("name", values.name)
+              formData.append("gender", values.gender)
+              formData.append("address", values.address)
+              formData.append("dob", values.dob)
+              formData.append("phone", values.phone)
+              if (image) {
+                // const filePart = image.split(".")
+                // const fileType = filePart[filePart.length - 1]
+                // formData.append("image", {
+                //   uri: image,
+                //   type: `image/${fileType}`,
+                //   name: `profile.${fileType}`,
+                // })
+                const imageInfo = getImageInfo(
+                  image.startsWith("file://") ? image : `file://${image}`
+                )
+                formData.append("image", imageInfo)
+              }
 
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-        <Formik
-          initialValues={{
-            name: dummyInfo.name,
-            gender: dummyInfo.gender,
-            dob: dummyInfo.dob,
-            address: dummyInfo.address,
-            phone: dummyInfo.phone,
-          }}
-          onSubmit={(values) => {
-            const formData = new FormData()
-            formData.append("name", values.name)
-            formData.append("gender", values.gender)
-            formData.append("address", values.address)
-            formData.append("dob", values.dob)
-            formData.append("image", image)
-            console.log(formData)
-          }}
-          validationSchema={validationSchema}
-        >
-          {({
-            handleChange,
-            handleSubmit,
-            handleBlur,
-            touched,
-            errors,
-            values,
-          }) => (
-            <>
-              <KeyboardAvoidingView
-                behavior="position"
-                style={styles.inputsContainer}
-              >
-                <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                  <View style={styles.imageContainer}>
-                    <Image
-                      source={image ? { uri: image } : picture}
-                      style={styles.image}
-                    />
-                    <MaterialCommunityIcons
-                      name="image-edit-outline"
-                      size={25}
-                      color={colors.blue}
-                      style={styles.editIcon}
-                      onPress={() => pickImage()}
-                    />
-                  </View>
-                  <AppTextInput
-                    style={[
-                      styles.fields,
-                      {
-                        // backgroundColor: colors.white,
-                      },
-                    ]}
-                    placeholder="Name"
-                    placeholderTextColor={colors.text}
-                    onChangeText={handleChange("name")}
-                    onBlur={handleBlur("name")}
-                    values={values.name}
-                  />
-                  {touched.name && errors.name && (
-                    <Text style={styles.errorText}>{errors.name}</Text>
-                  )}
-                  <AppTextInput
-                    style={[styles.fields, { backgroundColor: colors.white }]}
-                    placeholder="Gender"
-                    onChangeText={handleChange("gender")}
-                    onBlur={handleBlur("gender")}
-                    values={values.gender}
-                    placeholderTextColor={colors.text}
-                  />
-                  {touched.gender && errors.gender && (
-                    <Text style={styles.errorText}>{errors.gender}</Text>
-                  )}
-                  <TouchableOpacity
-                    onPress={() => setShowPicker(true)}
-                    style={[
-                      styles.datePickerContainer,
-                      styles.fields,
-                      { backgroundColor: colors.white },
-                    ]}
-                  >
-                    <Text style={[styles.datePicker, { color: colors.text }]}>
-                      {dateTouched
-                        ? new Date(values.dob).toDateString()
-                        : values.dob
-                        ? new Date(values.dob).toDateString()
-                        : "Select Date of Birth"}
-                    </Text>
-                  </TouchableOpacity>
-                  {showPicker && (
-                    <DateTimePicker
-                      value={values.dob ? new Date(values.dob) : new Date()}
-                      mode="date"
-                      display={
-                        Platform.OS === "android" ? "spinner" : "default"
-                      }
-                      onChange={(event, selectedDate) => {
-                        setShowPicker(false)
-                        if (selectedDate) {
-                          setDateTouched(true)
-                          handleChange("dob")(selectedDate.toISOString())
+              try {
+                const token = await AsyncStorage.getItem("Ptoken")
+                console.log(1)
+                if (!token) throw new Error("Authentication token not found!")
+                console.log(2)
+                console.log(formData)
+
+                const { data } = await api.post(
+                  "user/api//profile-update",
+                  formData,
+                  { headers: { token } }
+                )
+                console.log(3)
+                if (data.success) {
+                  ToastAndroid.show("updated succefully!", ToastAndroid.SHORT)
+                  navigation.goBack()
+                }
+                console.log(4)
+              } catch (error) {
+                console.log(5)
+                // console.log(error.response.data.message || "catch error")
+                if (error.response?.data?.message) {
+                  console.log("Server error:", error.response.data.message)
+                } else if (error.message) {
+                  console.log("Client error:", error.message)
+                } else {
+                  console.log("Unknown error:", error)
+                }
+              }
+            }}
+            validationSchema={validationSchema}
+          >
+            {({
+              handleChange,
+              handleSubmit,
+              handleBlur,
+              touched,
+              errors,
+              values,
+            }) => (
+              <>
+                <KeyboardAvoidingView
+                  behavior="position"
+                  style={styles.inputsContainer}
+                >
+                  <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                    <View style={styles.imageContainer}>
+                      <Image
+                        source={
+                          image ? { uri: image } : { uri: userData.image }
                         }
-                      }}
-                      onBlur={handleBlur("dob")}
-                      values={values.dob}
+                        style={styles.image}
+                      />
+                      <MaterialCommunityIcons
+                        name="image-edit-outline"
+                        size={25}
+                        color={colors.blue}
+                        style={styles.editIcon}
+                        onPress={() => pickImage()}
+                      />
+                    </View>
+                    <AppTextInput
+                      inputName="Name: "
+                      style={[styles.fields]}
+                      // placeholder={userData.name}
+                      placeholderTextColor={colors.text}
+                      onChangeText={handleChange("name")}
+                      onBlur={handleBlur("name")}
+                      value={values.name}
                     />
-                  )}
+                    {touched.name && errors.name && (
+                      <Text style={styles.errorText}>{errors.name}</Text>
+                    )}
+                    <AppTextInput // make this a dropdown to select from
+                      inputName="Gender: "
+                      style={[styles.fields, { backgroundColor: colors.white }]}
+                      // placeholder={userData.gender}
+                      onChangeText={handleChange("gender")}
+                      onBlur={handleBlur("gender")}
+                      value={values.gender}
+                      placeholderTextColor={colors.text}
+                    />
+                    {touched.gender && errors.gender && (
+                      <Text style={styles.errorText}>{errors.gender}</Text>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => setShowPicker(true)}
+                      style={[
+                        styles.datePickerContainer,
+                        styles.fields,
+                        { backgroundColor: colors.white },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: colors.blue,
+                          marginLeft: 10,
+                          fontSize: 18,
+                          width: 70,
+                        }}
+                      >
+                        D.O.B
+                      </Text>
+                      <Text style={[styles.datePicker, { color: colors.text }]}>
+                        {dateTouched
+                          ? new Date(values.dob).toDateString()
+                          : values.dob
+                          ? new Date(values.dob).toDateString()
+                          : "Select Date of Birth"}
+                      </Text>
+                    </TouchableOpacity>
+                    {showPicker && (
+                      <DateTimePicker
+                        value={
+                          values.dob instanceof Date && !isNaN(values.dob)
+                            ? new Date(values.dob)
+                            : new Date()
+                        }
+                        mode="date"
+                        display={
+                          Platform.OS === "android" ? "spinner" : "default"
+                        }
+                        onChange={(event, selectedDate) => {
+                          setShowPicker(false)
+                          if (selectedDate) {
+                            setDateTouched(true)
+                            handleChange("dob")(selectedDate.toISOString())
+                          }
+                        }}
+                      />
+                    )}
 
-                  {touched.dob && errors.dob && (
-                    <Text style={styles.errorText}>{errors.dob}</Text>
-                  )}
-                  <AppTextInput
-                    style={[styles.fields, { backgroundColor: colors.white }]}
-                    placeholder="Address"
-                    onChangeText={handleChange("address")}
-                    onBlur={handleBlur("address")}
-                    values={values.address}
-                    placeholderTextColor={colors.text}
-                  />
-                  {touched.address && errors.address && (
-                    <Text style={styles.errorText}>{errors.address}</Text>
-                  )}
-                  <AppTextInput
-                    style={[styles.fields, { backgroundColor: colors.white }]}
-                    placeholder="Phone"
-                    onChangeText={handleChange("phone")}
-                    onBlur={handleBlur("phone")}
-                    values={values.phone}
-                    keyboardType="phone-pad"
-                    placeholderTextColor={colors.text}
-                  />
-                  {touched.phone && errors.phone && (
-                    <Text style={styles.errorText}>{errors.phone}</Text>
-                  )}
-                </ScrollView>
-              </KeyboardAvoidingView>
-              <AppButton
-                title="save"
-                onPress={handleSubmit}
-                style={{ marginVertical: 30, backgroundColor: colors.blue }}
-              />
-            </>
-          )}
-        </Formik>
-      </TouchableWithoutFeedback>
+                    {touched.dob && errors.dob && (
+                      <Text style={styles.errorText}>{errors.dob}</Text>
+                    )}
+                    <AppTextInput
+                      inputName="Address: "
+                      style={[styles.fields, { backgroundColor: colors.white }]}
+                      // placeholder={userData.address}
+                      onChangeText={handleChange("address")}
+                      onBlur={handleBlur("address")}
+                      value={values.address}
+                      placeholderTextColor={colors.text}
+                    />
+                    {touched.address && errors.address && (
+                      <Text style={styles.errorText}>{errors.address}</Text>
+                    )}
+                    <AppTextInput
+                      inputName="Phone: "
+                      style={[styles.fields, { backgroundColor: colors.white }]}
+                      // placeholder={userData.phone}
+                      onChangeText={handleChange("phone")}
+                      onBlur={handleBlur("phone")}
+                      value={values.phone}
+                      keyboardType="phone-pad"
+                      placeholderTextColor={colors.text}
+                    />
+                    {touched.phone && errors.phone && (
+                      <Text style={styles.errorText}>{errors.phone}</Text>
+                    )}
+                  </ScrollView>
+                </KeyboardAvoidingView>
+                <AppButton
+                  title="save"
+                  onPress={handleSubmit}
+                  style={{ marginVertical: 30, backgroundColor: colors.blue }}
+                />
+              </>
+            )}
+          </Formik>
+        </TouchableWithoutFeedback>
+      ) : (
+        <LottieView
+          style={styles.spinner}
+          source={require("../../../assets/Animations/barSpinner.json")}
+          loop
+          autoPlay
+        />
+      )}
     </View>
   )
 }
@@ -284,6 +362,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     alignItems: "center",
+    flex: 1,
   },
   errorText: {
     color: "red",
@@ -306,5 +385,10 @@ const styles = StyleSheet.create({
   // },
   icon: {
     width: 50,
+  },
+  spinner: {
+    marginTop: "60%",
+    width: 200,
+    height: 200,
   },
 })

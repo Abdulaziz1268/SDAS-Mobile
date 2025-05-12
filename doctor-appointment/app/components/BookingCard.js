@@ -74,7 +74,6 @@ const BookingCard = ({ name, speciality, slotDate, slotTime, payment }) => {
   }
 
   const window = Dimensions.get("window").height
-  console.log(payment)
   return (
     <TouchableWithoutFeedback>
       <View
