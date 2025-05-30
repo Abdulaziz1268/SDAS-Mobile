@@ -7,10 +7,14 @@ export const AuthContext = createContext()
 export const AuthProvider = ({ children }) => {
   const [doctorToken, setDoctorToken] = useState(false)
   const [patientToken, setPatientToken] = useState(false)
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
     const checkToken = async () => {
-      const dtoken = await AsyncStorage.getItem("Dtoken")
+      //check user also with token
+      const storedUser = await AsyncStorage.getItem("user")
+      setUser(storedUser)
+      const dtoken = await AsyncStorage.getItem("dtoken")
       const ptoken = await AsyncStorage.getItem("Ptoken")
       if (ptoken) {
         setPatientToken(true)
@@ -37,7 +41,14 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ doctorToken, setDoctorToken, patientToken, setPatientToken }}
+      value={{
+        doctorToken,
+        setDoctorToken,
+        patientToken,
+        setPatientToken,
+        user,
+        setUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

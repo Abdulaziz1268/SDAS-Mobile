@@ -7,6 +7,12 @@ export const LightTheme = {
   blue: "#1d4ed8",
   medium: "#b0b0b0",
   text: "black",
+  red: "red",
+  darkred: "#991b1b",
+  lightred: "#fef2f2",
+  green: "green",
+  lightgreen: "#f2fef2",
+  darkgreen: "#1b991b",
 }
 export const DarkTheme = {
   white: "#121212",
@@ -17,4 +23,10 @@ export const DarkTheme = {
   blue: "#60a5fa",
   medium: "#b0b0b0",
   text: "lightgray",
+  red: "red",
+  lightred: "#4b1c1c",
+  darkred: "#991b1b",
+  green: "green",
+  lightgreen: "#f2fef2",
+  darkgreen: "#1b991b",
 }

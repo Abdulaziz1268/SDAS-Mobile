@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useRef, useState } from "react"
 import {
   Dimensions,
   Image,
@@ -16,19 +16,10 @@ import docImage from "../../assets/docImage.jpg"
 import AppButton from "./AppButton"
 import AppCalendar from "./AppCalendar"
 import { useTheme } from "../Contexts/ThemeContext"
+import AppModal from "./AppModal"
+import { apiWithDoctorAuth } from "../config/api"
 
 //this will be pulled later from the parent component and also update booking card
-const time = []
-
-for (let i = 8; i < 12; i++) {
-  time.push({ time: `${i} : 00 AM` })
-  time.push({ time: `${i} : 30 AM` })
-}
-
-for (let i = 1; i < 6; i++) {
-  time.push({ time: `${i} : 00 PM` })
-  time.push({ time: `${i} : 30 PM` })
-}
 
 const DoctorCard = ({
   name,
@@ -36,22 +27,12 @@ const DoctorCard = ({
   availability,
   description,
   fee = 0,
-  id,
+  onBookPress,
+  image,
 }) => {
   const { colors } = useTheme()
   const [showDetails, setShowDetails] = useState(false)
-  const [modal, setModal] = useState(false)
 
-  const handleModal = () => {
-    setModal((prev) => !prev)
-  }
-
-  const handleConfirm = (timeSlot, Day, Month, Year, Hour, Minute, Second) => {
-    const x = new Date(Year, Month, Day, Hour, Minute, Second).toString()
-    ToastAndroid.show(x + timeSlot, ToastAndroid.SHORT)
-  }
-
-  const window = Dimensions.get("window").height
   return (
     <TouchableWithoutFeedback
       onPress={() => {
@@ -63,80 +44,66 @@ const DoctorCard = ({
           )
       }}
     >
-      <View
-        style={[
-          styles.cardContainer,
-          { borderColor: colors.lightgray, backgroundColor: colors.white },
-        ]}
-      >
-        <View style={styles.topContainer}>
-          <Image source={docImage} style={styles.cardImage} />
-          <View style={styles.detailsContainer}>
-            <Text style={[styles.name, { color: colors.blue }]}>{name}</Text>
-            <Text
-              style={[
-                styles.speciality,
-                {
-                  borderColor: colors.blue,
-                  color: colors.text,
-                  backgroundColor: colors.lightblue,
-                },
-              ]}
-            >
-              {speciality}
-            </Text>
-            <Text style={{ color: availability ? "green" : "orange" }}>
-              {availability ? "Available" : "Not Available"}
-            </Text>
-          </View>
-        </View>
-        {showDetails && availability && (
-          <View
-            style={[styles.bottomContainer, { borderColor: colors.lightblue }]}
-          >
-            <Text
-              style={[
-                styles.detailsText,
-                { textAlign: "center", fontSize: 18, color: colors.blue },
-              ]}
-            >
-              About
-            </Text>
-            <Text style={{ color: colors.gray }}>{description}</Text>
-            <View style={styles.fee}>
-              <Text style={[styles.detailsText, { color: colors.text }]}>
-                Appointment fee:
+      <View>
+        <View
+          style={[
+            styles.cardContainer,
+            { borderColor: colors.lightgray, backgroundColor: colors.white },
+          ]}
+        >
+          <View style={styles.topContainer}>
+            <Image source={{ uri: image }} style={styles.cardImage} />
+            <View style={styles.detailsContainer}>
+              <Text style={[styles.name, { color: colors.blue }]}>{name}</Text>
+              <Text
+                style={[
+                  styles.speciality,
+                  {
+                    borderColor: colors.blue,
+                    color: colors.text,
+                    backgroundColor: colors.lightblue,
+                  },
+                ]}
+              >
+                {speciality}
               </Text>
-              <Text style={{ color: colors.blue, fontWeight: "600" }}>
-                ${fee}
+              <Text style={{ color: availability ? "green" : "orange" }}>
+                {availability ? "Available" : "Not Available"}
               </Text>
             </View>
-            <AppButton
-              title="Book Appointment"
-              onPress={() => setModal(true)}
-              style={{ backgroundColor: colors.blue, marginVertical: 10 }}
-            />
-            <Modal visible={modal} animationType="slide" transparent={true}>
-              <View style={styles.modalOverlay}>
-                <View
-                  style={[
-                    styles.modalContent,
-                    { backgroundColor: colors.white },
-                  ]}
-                >
-                  <Text style={[styles.modalHeader, { color: colors.blue }]}>
-                    Select Date
-                  </Text>
-                  <AppCalendar
-                    timestamp={time}
-                    handleModal={handleModal}
-                    handleConfirm={handleConfirm}
-                  />
-                </View>
-              </View>
-            </Modal>
           </View>
-        )}
+          {showDetails && availability && (
+            <View
+              style={[
+                styles.bottomContainer,
+                { borderColor: colors.lightblue },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.detailsText,
+                  { textAlign: "center", fontSize: 18, color: colors.blue },
+                ]}
+              >
+                About
+              </Text>
+              <Text style={{ color: colors.gray }}>{description}</Text>
+              <View style={styles.fee}>
+                <Text style={[styles.detailsText, { color: colors.text }]}>
+                  Appointment fee:
+                </Text>
+                <Text style={{ color: colors.blue, fontWeight: "600" }}>
+                  ${fee}
+                </Text>
+              </View>
+              <AppButton
+                title="Book Appointment"
+                onPress={onBookPress}
+                style={{ backgroundColor: colors.blue, marginVertical: 10 }}
+              />
+            </View>
+          )}
+        </View>
       </View>
     </TouchableWithoutFeedback>
   )

@@ -1,66 +1,29 @@
-// import React from "react"
-// import { StyleSheet, View, Text } from "react-native"
-// import colors from "../config/colors"
-
-// const BookingCard = ({ name, date, time }) => {
-//   return (
-//     <View style={styles.container}>
-//       <Text>{name}</Text>
-//     </View>
-//   )
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     width: "95%",
-//     height: 50,
-//     backgroundColor: colors.white,
-//     marginVertical: 10,
-//     borderRadius: 15,
-//     padding: 10,
-//     borderWidth: 1,
-//     borderColor: colors.lightgray,
-//     alignSelf: "center",
-//   },
-// })
-
-// export default BookingCard
-import React, { useState } from "react"
+import { useState } from "react"
 import {
-  Dimensions,
   Image,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
-  ToastAndroid,
-  TouchableHighlight,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native"
 
-import Photo from "../../assets/noUser.jpg"
-import docImage from "../../assets/docImage.jpg"
-// import colors from "../config/colors"
-import AppButton from "./AppButton"
-import AppCalendar from "./AppCalendar"
-import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useTheme } from "../Contexts/ThemeContext"
 
-const time = []
-
-for (let i = 8; i < 12; i++) {
-  time.push({ time: `${i} : 00 AM` })
-  time.push({ time: `${i} : 30 AM` })
-}
-
-for (let i = 1; i < 6; i++) {
-  time.push({ time: `${i} : 00 PM` })
-  time.push({ time: `${i} : 30 PM` })
-}
-
-const BookingCard = ({ name, speciality, slotDate, slotTime, payment }) => {
+const BookingCard = ({
+  image,
+  name,
+  speciality,
+  slotDate,
+  slotTime,
+  payment,
+  rescheduled,
+  completed,
+  cancelled,
+  handleCancel,
+  onReschedulePress,
+  onPaymentPress,
+}) => {
   const { colors } = useTheme()
   const [modal, setModal] = useState(false)
 
@@ -68,12 +31,6 @@ const BookingCard = ({ name, speciality, slotDate, slotTime, payment }) => {
     setModal((prev) => !prev)
   }
 
-  const handleConfirm = (timeSlot, Day, Month, Year, Hour, Minute, Second) => {
-    const x = new Date(Year, Month, Day, Hour, Minute, Second).toString()
-    ToastAndroid.show(x + timeSlot, ToastAndroid.SHORT)
-  }
-
-  const window = Dimensions.get("window").height
   return (
     <TouchableWithoutFeedback>
       <View
@@ -83,7 +40,7 @@ const BookingCard = ({ name, speciality, slotDate, slotTime, payment }) => {
         ]}
       >
         <View style={styles.topContainer}>
-          <Image source={docImage} style={styles.cardImage} />
+          <Image source={{ uri: image }} style={styles.cardImage} />
           <View style={styles.detailsContainer}>
             <Text style={[styles.name, { color: colors.blue }]}>{name}</Text>
             <View
@@ -100,85 +57,114 @@ const BookingCard = ({ name, speciality, slotDate, slotTime, payment }) => {
           </View>
         </View>
         <View style={styles.btnContainer}>
-          {payment ? (
-            <View style={[styles.btn, { borderColor: colors.gray }]}>
-              <Text style={[styles.btnText, { color: colors.gray }]}>Paid</Text>
+          {cancelled ? (
+            <View style={[styles.btn, { borderColor: colors.darkred }]}>
+              <Text
+                style={[
+                  styles.btnText,
+                  { color: colors.darkred, fontWeight: "700" },
+                ]}
+              >
+                Cancelled
+              </Text>
+            </View>
+          ) : completed ? (
+            <View style={[styles.btn, { borderColor: colors.green }]}>
+              <Text
+                style={[
+                  styles.btnText,
+                  { color: colors.green, fontWeight: "700" },
+                ]}
+              >
+                Completed
+              </Text>
             </View>
           ) : (
-            <Pressable
-              style={({ pressed }) => [
-                styles.btn,
-                {
-                  backgroundColor: pressed ? colors.lightblue : colors.white,
-                  borderColor: colors.blue,
-                },
-              ]}
-            >
-              <Text style={[styles.btnText, { color: colors.text }]}>
-                Pay Online
-              </Text>
-            </Pressable>
+            <>
+              {payment ? (
+                <View style={[styles.btn, { borderColor: colors.gray }]}>
+                  <Text style={[styles.btnText, { color: colors.gray }]}>
+                    Paid
+                  </Text>
+                </View>
+              ) : (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.btn,
+                    {
+                      backgroundColor: pressed
+                        ? colors.lightblue
+                        : colors.white,
+                      borderColor: colors.blue,
+                    },
+                  ]}
+                  onPress={onPaymentPress}
+                >
+                  <Text style={[styles.btnText, { color: colors.text }]}>
+                    Pay Online
+                  </Text>
+                </Pressable>
+              )}
+              {rescheduled ? (
+                <View
+                  style={[
+                    styles.btn,
+                    {
+                      borderColor: colors.darkred,
+                      backgroundColor: colors.lightred,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.btnText,
+                      { color: colors.darkred, fontWeight: "700" },
+                    ]}
+                  >
+                    Rescheduled
+                  </Text>
+                </View>
+              ) : (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.btn,
+                    {
+                      backgroundColor: pressed
+                        ? colors.lightblue
+                        : colors.white,
+                      borderColor: colors.blue,
+                    },
+                  ]}
+                  onPress={onReschedulePress}
+                >
+                  <Text style={[styles.btnText, { color: colors.text }]}>
+                    Reschedule
+                  </Text>
+                </Pressable>
+              )}
+              <Pressable
+                onPress={handleCancel}
+                style={({ pressed }) => [
+                  styles.btn,
+                  {
+                    backgroundColor: pressed ? colors.lightblue : colors.white,
+                    borderColor: colors.blue,
+                  },
+                ]}
+              >
+                <Text style={[styles.btnText, { color: colors.text }]}>
+                  Cancel
+                </Text>
+              </Pressable>
+            </>
           )}
-          <Pressable
-            style={({ pressed }) => [
-              styles.btn,
-              {
-                backgroundColor: pressed ? colors.lightblue : colors.white,
-                borderColor: colors.blue,
-              },
-            ]}
-            onPress={() => setModal((prev) => !prev)}
-          >
-            <Text style={[styles.btnText, { color: colors.text }]}>
-              Reschedule
-            </Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.btn,
-              {
-                backgroundColor: pressed ? colors.lightblue : colors.white,
-                borderColor: colors.blue,
-              },
-            ]}
-          >
-            <Text style={[styles.btnText, { color: colors.text }]}>Cancel</Text>
-          </Pressable>
         </View>
-        <Modal visible={modal} animationType="slide" transparent={true}>
-          <View style={styles.modalOverlay}>
-            <View
-              style={[styles.modalContent, { backgroundColor: colors.white }]}
-            >
-              <Text style={[styles.modalHeader, { color: colors.blue }]}>
-                Select Date
-                <MaterialCommunityIcons // later replace this with swipe gesture
-                  name="close"
-                  size={25}
-                  onPress={handleModal}
-                />
-              </Text>
-              <AppCalendar
-                timestamp={time}
-                handleModal={handleModal}
-                handleConfirm={handleConfirm}
-              />
-            </View>
-          </View>
-        </Modal>
       </View>
     </TouchableWithoutFeedback>
   )
 }
 
 const styles = StyleSheet.create({
-  // bottomContainer: {
-  //   padding: 20,
-  //   borderWidth: 2,
-  //   borderColor: colors.lightblue,
-  //   borderRadius: 20,
-  //   margin: 10,
-  // },
   btn: {
     borderWidth: 1,
 
@@ -193,13 +179,6 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 10,
   },
-  // btnText: {
-  //   fontSize: 18,
-  // },
-  // button: {
-  //   backgroundColor: colors.blue,
-  //   marginVertical: 10,
-  // },
   cardContainer: {
     width: "100%",
     marginVertical: 10,
@@ -210,9 +189,7 @@ const styles = StyleSheet.create({
   cardImage: {
     width: 150,
     height: 125,
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
-    borderBottomLeftRadius: 18,
+    borderRadius: 20,
   },
   closeBtn: {
     padding: 20,
@@ -256,6 +233,7 @@ const styles = StyleSheet.create({
   },
   topContainer: {
     flexDirection: "row",
+    padding: 10,
   },
 })
 

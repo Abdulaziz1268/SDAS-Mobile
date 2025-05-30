@@ -13,24 +13,21 @@ import {
   Alert,
   ToastAndroid,
   TouchableOpacity,
-  PlatformColor,
-  ActivityIndicator,
 } from "react-native"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import * as ImagePicker from "expo-image-picker"
 import * as Yup from "yup"
+import axios from "axios"
+import { useContext, useEffect, useState } from "react"
+import LottieView from "lottie-react-native"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 import AppTextInput from "../../components/AppTextInput"
-import AppSafeAreaView from "../../components/AppSafeAreaView"
 import AppButton from "../../components/AppButton"
-import { useContext, useEffect, useState } from "react"
-// import colors from "../../config/colors"
 import picture from "../../../assets/noUser.jpg"
 import { useTheme } from "../../Contexts/ThemeContext"
 import { UserContext } from "../../Contexts/UserContext"
-import api from "../../config/api"
-import AsyncStorage from "@react-native-async-storage/async-storage"
-import LottieView from "lottie-react-native"
+import { apiWithPatientAuth } from "../../config/api"
 
 const validationSchema = Yup.object().shape({
   name: Yup.string().required().min(3).label("Name"),
@@ -38,7 +35,7 @@ const validationSchema = Yup.object().shape({
   dob: Yup.date().required().label("Date of Birth"),
   address: Yup.string().required().label("Address"),
   phone: Yup.string()
-    // .required("Phone number is required")
+    .required("Phone number is required")
     .matches(/^(\+251|0)?9\d{8}$/, "Invalid phone number format")
     .label("Phone number"),
 })
@@ -49,8 +46,9 @@ export default function EditProfile({ navigation }) {
   const [status, requestPermission] = ImagePicker.useMediaLibraryPermissions()
   const [dateTouched, setDateTouched] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
-  const { userData } = useContext(UserContext)
-  console.log(userData)
+  const { userData, getUserData } = useContext(UserContext)
+  const [loading, setLoading] = useState(false)
+
   useEffect(() => {
     if (!status?.granted) requestPermission()
   }, [])
@@ -114,6 +112,7 @@ export default function EditProfile({ navigation }) {
               phone: userData.phone,
             }}
             onSubmit={async (values) => {
+              setLoading(true)
               const formData = new FormData()
               formData.append("name", values.name)
               formData.append("gender", values.gender)
@@ -121,44 +120,42 @@ export default function EditProfile({ navigation }) {
               formData.append("dob", values.dob)
               formData.append("phone", values.phone)
               if (image) {
-                // const filePart = image.split(".")
-                // const fileType = filePart[filePart.length - 1]
-                // formData.append("image", {
-                //   uri: image,
-                //   type: `image/${fileType}`,
-                //   name: `profile.${fileType}`,
-                // })
-                const imageInfo = getImageInfo(
-                  image.startsWith("file://") ? image : `file://${image}`
-                )
-                formData.append("image", imageInfo)
+                formData.append("image", getImageInfo(image))
               }
 
               try {
                 const token = await AsyncStorage.getItem("Ptoken")
-                console.log(1)
-                if (!token) throw new Error("Authentication token not found!")
-                console.log(2)
-                console.log(formData)
 
+                if (!token) throw new Error("Authentication token not found!")
+
+                const api = await apiWithPatientAuth()
                 const { data } = await api.post(
-                  "user/api//profile-update",
+                  "/user/api//profile-update",
                   formData,
-                  { headers: { token } }
+                  {
+                    headers: {
+                      "Content-Type": "multipart/form-data",
+                    },
+                  }
                 )
-                console.log(3)
+
                 if (data.success) {
                   ToastAndroid.show("updated succefully!", ToastAndroid.SHORT)
+                  await getUserData()
+                  setLoading(false)
                   navigation.goBack()
                 }
-                console.log(4)
               } catch (error) {
-                console.log(5)
-                // console.log(error.response.data.message || "catch error")
+                setLoading(false)
                 if (error.response?.data?.message) {
                   console.log("Server error:", error.response.data.message)
+                  ToastAndroid.show(
+                    error.response.data.message,
+                    ToastAndroid.SHORT
+                  )
                 } else if (error.message) {
                   console.log("Client error:", error.message)
+                  ToastAndroid.show(error.message, ToastAndroid.SHORT)
                 } else {
                   console.log("Unknown error:", error)
                 }
@@ -173,6 +170,7 @@ export default function EditProfile({ navigation }) {
               touched,
               errors,
               values,
+              setFieldValue,
             }) => (
               <>
                 <KeyboardAvoidingView
@@ -260,7 +258,8 @@ export default function EditProfile({ navigation }) {
                           setShowPicker(false)
                           if (selectedDate) {
                             setDateTouched(true)
-                            handleChange("dob")(selectedDate.toISOString())
+                            // handleChange("dob")(selectedDate.toISOString())
+                            setFieldValue("dob", selectedDate.toISOString())
                           }
                         }}
                       />
@@ -299,6 +298,7 @@ export default function EditProfile({ navigation }) {
                 <AppButton
                   title="save"
                   onPress={handleSubmit}
+                  loading={loading}
                   style={{ marginVertical: 30, backgroundColor: colors.blue }}
                 />
               </>

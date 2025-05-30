@@ -3,20 +3,21 @@ import {
   Text,
   StyleSheet,
   View,
-  TouchableWithoutFeedback,
-  Keyboard,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
+  ToastAndroid,
 } from "react-native"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as Yup from "yup"
-import AppTextInput from "../../components/AppTextInput"
-import AppSafeAreaView from "../../components/AppSafeAreaView"
-import AppButton from "../../components/AppButton"
-import { useState } from "react"
-// import colors from "../../config/colors"
+import { useContext, useState } from "react"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
-import { useTheme } from "../../Contexts/ThemeContext"
+
+import AppTextInput from "../components/AppTextInput"
+import AppSafeAreaView from "../components/AppSafeAreaView"
+import AppButton from "../components/AppButton"
+import { useTheme } from "../Contexts/ThemeContext"
+import { apiWithPatientAuth, apiWithDoctorAuth } from "../config/api"
+import { AuthContext } from "../Contexts/AuthContext"
 
 const validationSchema = Yup.object().shape({
   oldPassword: Yup.string().required().label("Current Password"),
@@ -29,6 +30,8 @@ const validationSchema = Yup.object().shape({
 export default function ChangePassword({ navigation }) {
   const [visible, setVisible] = useState(false)
   const { colors } = useTheme()
+  const { user } = useContext(AuthContext)
+  const [responseData, setResponseData] = useState()
 
   const handleShowPassword = () => {
     setVisible((prevState) => !prevState)
@@ -52,8 +55,51 @@ export default function ChangePassword({ navigation }) {
           newPassword: "",
           ConfirmPassword: "",
         }}
-        onSubmit={(values) => {
-          console.log(finalValue)
+        onSubmit={async (values) => {
+          try {
+            if (user == "patient") {
+              const token = await AsyncStorage.getItem("Ptoken")
+
+              if (!token) throw new Error("no authentication token found!")
+              const api = await apiWithPatientAuth()
+              const { data } = await api.post(
+                "user/api/change-password",
+                values
+              )
+
+              if (data.success) {
+                ToastAndroid.show(
+                  "Password Changed Successfully",
+                  ToastAndroid.SHORT
+                )
+                navigation.goBack()
+              }
+            } else if (user == "doctor") {
+              const token = await AsyncStorage.getItem("dtoken")
+
+              if (!token) throw new Error("no authentication token found!")
+              const api = await apiWithDoctorAuth()
+              const { data } = await api.post(
+                "doctor/api/change-password",
+                values
+              )
+
+              if (data.success) {
+                ToastAndroid.show(
+                  "Password Changed Successfully",
+                  ToastAndroid.SHORT
+                )
+                navigation.goBack()
+              }
+            }
+          } catch (error) {
+            if (error.response?.data?.message) {
+              console.log(error.response.data.message)
+              ToastAndroid.show(error.response.data.message, ToastAndroid.SHORT)
+            } else {
+              console.log(error.message)
+            }
+          }
         }}
         validationSchema={validationSchema}
       >
@@ -125,7 +171,7 @@ export default function ChangePassword({ navigation }) {
             <AppButton
               title="Change"
               onPress={handleSubmit}
-              style={{ backgroundColor: colors.blue, marginVertical: 30 }}
+              style={{ marginVertical: 30, backgroundColor: colors.blue }}
             />
           </>
         )}

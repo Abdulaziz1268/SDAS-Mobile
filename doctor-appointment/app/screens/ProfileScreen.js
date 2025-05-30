@@ -8,7 +8,7 @@ import {
   Image,
   Switch,
 } from "react-native"
-import { useContext, useEffect, useState } from "react"
+import { useCallback, useContext, useEffect, useState } from "react"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import * as Updates from "expo-updates"
 import * as LocalAuthentication from "expo-local-authentication"
@@ -20,13 +20,13 @@ import {
 } from "react-native-popup-menu"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
-// import colors from "../config/colors"
 import { useTheme } from "../Contexts/ThemeContext"
 import Photo from "../../assets/noUser.jpg"
 import { PrefContext } from "../Contexts/PrefContext"
 import { AuthContext } from "../Contexts/AuthContext"
-import CustomAlert from "../components/CustomAlert"
+import AppAlert from "../components/AppAlert"
 import { UserContext } from "../Contexts/UserContext"
+import { DoctorContext } from "../Contexts/DoctorContext"
 import { useFocusEffect } from "@react-navigation/native"
 
 const initialData = {
@@ -36,15 +36,27 @@ const initialData = {
 
 const ProfileScreen = ({ navigation }) => {
   const { allowFP, setAllowFP } = useContext(PrefContext)
-  const { setPatientToken, setDoctorToken } = useContext(AuthContext)
-  const { userData } = useContext(UserContext)
+  const { setPatientToken, setDoctorToken, user } = useContext(AuthContext)
+  const { userData, getUserData } = useContext(UserContext)
+  const { doctorData, getDoctorData } = useContext(DoctorContext)
   const { colors, toggleTheme, isDark } = useTheme()
   const [showAlert, setShowAlert] = useState(false)
   const [data, setData] = useState(initialData)
 
-  useEffect(() => {
-    if (userData) setData(userData)
-  }, [userData])
+  useFocusEffect(
+    useCallback(() => {
+      if (user === "patient" && userData) {
+        getUserData
+        setData(userData)
+      } else if (user === "doctor" && doctorData) {
+        getDoctorData
+        setData(doctorData)
+      }
+    }, [userData, doctorData])
+  )
+
+  // useFocusEffect(() => {
+  // }, [userData, doctorData])
 
   const toggleFingerprint = async () => {
     const hasHardware = await LocalAuthentication.hasHardwareAsync()
@@ -56,7 +68,17 @@ const ProfileScreen = ({ navigation }) => {
         ToastAndroid.SHORT
       )
     }
-    setAllowFP((prevState) => !prevState)
+
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: "Authenticate with Fingerprint",
+      fallbackLabel: "Use Password",
+    })
+
+    if (result.success) {
+      setAllowFP((prevState) => !prevState)
+    } else {
+      ToastAndroid.show("Authentication Failed", ToastAndroid.SHORT)
+    }
   }
 
   const checkForUpdates = async () => {
@@ -113,6 +135,8 @@ const ProfileScreen = ({ navigation }) => {
     }
   }
 
+  console.log(data)
+
   return (
     <View
       style={[styles.profileContainer, { backgroundColor: colors.lightblue }]}
@@ -128,23 +152,37 @@ const ProfileScreen = ({ navigation }) => {
         />
         <View style={styles.leftContainer}>
           <View style={styles.threeDots}>
-            <MaterialCommunityIcons
-              name="square-edit-outline"
-              size={25}
-              onPress={() => navigation.navigate("EditProfile")}
-              color={colors.text}
-            />
+            <TouchableOpacity
+              onPress={user === "patient" ? getUserData : getDoctorData}
+            >
+              <MaterialCommunityIcons
+                name="account-sync"
+                size={25}
+                color={colors.text}
+                style={{ marginRight: 5 }}
+              />
+            </TouchableOpacity>
+            {user === "patient" && (
+              <MaterialCommunityIcons
+                name="square-edit-outline"
+                size={25}
+                onPress={() => navigation.navigate("EditProfile")}
+                color={colors.text}
+              />
+            )}
             <Menu>
               <MenuTrigger
                 customStyles={{
                   TriggerTouchableComponent: TouchableOpacity,
                 }}
               >
-                <MaterialCommunityIcons
-                  name="dots-vertical"
-                  size={25}
-                  color={colors.text}
-                />
+                {user === "patient" && (
+                  <MaterialCommunityIcons
+                    name="dots-vertical"
+                    size={25}
+                    color={colors.text}
+                  />
+                )}
               </MenuTrigger>
               <MenuOptions
                 customStyles={{
@@ -249,7 +287,7 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={{ color: colors.text }}>Log Out</Text>
       </TouchableOpacity>
       {showAlert && (
-        <CustomAlert
+        <AppAlert
           visible={showAlert}
           message="Are you sure to logout!"
           onSave={() => {
@@ -271,7 +309,10 @@ const styles = StyleSheet.create({
   //   marginBottom: 15,
   //   fontWeight: "bold",
   //   color: colors.blue,
-  // },
+  // }
+  container: {
+    flex: 1,
+  },
   hero: {
     flexDirection: "row",
     alignItems: "center",

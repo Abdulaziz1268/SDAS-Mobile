@@ -1,32 +1,184 @@
 import React, { useEffect, useState } from "react"
-import { FlatList, Image, StyleSheet, Text, View } from "react-native"
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  ToastAndroid,
+  View,
+} from "react-native"
 // import image from "../../../assets/asset"
 import { patient, appointment, money } from "../../../assets/index"
 // import colors from "../../config/colors"
 import AppointmentCard from "../../components/AppointmentCard"
 import LottieView from "lottie-react-native"
 import { useTheme } from "../../Contexts/ThemeContext"
-
-const info = [
-  { name: "abdu", date: "2/3/2025", time: "8:00 AM" },
-  { name: "kedir", date: "2/3/2025", time: "8:30 AM" },
-  { name: "muse", date: "2/3/2025", time: "9:00 AM" },
-  { name: "abdul", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulas", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abduldfasdfsffsfs", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulsd", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulff", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulvv", date: "2/3/2025", time: "9:30 AM" },
-]
+import { apiWithDoctorAuth } from "../../config/api"
 
 const DashboardScreen = () => {
   const [loading, setLoading] = useState(true)
+  const [firstTime, setFirstTime] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [appointments, setAppointments] = useState([])
+  const [count, setCount] = useState({
+    totalPatient: 0,
+    totalAppointment: 0,
+    totalEarnings: 0,
+  })
   const { colors } = useTheme()
-  useEffect(() => {
-    setTimeout(() => {
+
+  const formater = (date) => {
+    const [month, day, year] = date.split("/")
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+  }
+
+  const getAppointments = async () => {
+    try {
+      if (!firstTime) setRefreshing(true)
+
+      setFirstTime(false)
+      const api = await apiWithDoctorAuth()
+      const { data } = await api.get("doctor/api/get-appointment")
+      console.log(data)
+      if (data.success) {
+        const today = new Date().toISOString().split("T")[0]
+        const recent = data.appointments.filter(
+          (appintment) => today === formater(appintment.slotDate)
+        )
+        console.log(recent)
+        setAppointments(recent || [])
+        setLoading(false)
+        setRefreshing(false)
+      }
+    } catch (error) {
       setLoading(false)
-    }, 2000)
+      setRefreshing(false)
+      if (error.response?.data?.message) {
+        console.log(error.response?.data?.message)
+      } else {
+        console.log(error.message)
+      }
+    }
+  }
+
+  useEffect(() => {
+    getAppointments()
+    patientCount()
+    appointmentCount()
+    earningCount()
   }, [])
+
+  const handleCancel = async (appointmentId) => {
+    try {
+      const api = await apiWithDoctorAuth()
+      const { data } = await api.post("doctor/api/cancel-appointment", {
+        appointmentId,
+      })
+      if (data.success) {
+        ToastAndroid.show("cancelled", ToastAndroid.SHORT)
+        setAppointments((prev) =>
+          prev.map((appt) =>
+            appt._id === appointmentId ? { ...appt, cancelled: true } : appt
+          )
+        )
+      } else {
+        ToastAndroid.show(data.message, ToastAndroid.SHORT)
+      }
+    } catch (error) {
+      console.log(error.message)
+    }
+  }
+
+  const handleComplete = async (appointmentId) => {
+    try {
+      const api = await apiWithDoctorAuth()
+      const { data } = await api.post("doctor/api/complete-appointment", {
+        appointmentId,
+      })
+      if (data.success) {
+        ToastAndroid.show("Completed", ToastAndroid.SHORT)
+        setAppointments((prev) =>
+          prev.map((appt) =>
+            appt._id === appointmentId ? { ...appt, isCompletted: true } : appt
+          )
+        )
+      } else {
+        ToastAndroid.show(data.message, ToastAndroid.SHORT)
+      }
+    } catch (error) {
+      console.log(error.message)
+    }
+  }
+
+  const patientCount = async () => {
+    try {
+      const api = await apiWithDoctorAuth()
+      const { data } = await api.get("doctor/api/count-pateint")
+
+      if (data.success) {
+        const patCount = data.count.length > 0 ? data.count[0].totalUsers : 0
+        setCount((prevState) => ({
+          ...prevState,
+          totalPatient: patCount,
+        }))
+      }
+    } catch (error) {
+      if (error.response?.data?.message) {
+        console.log(error.response?.data?.message)
+        ToastAndroid.show(error.response?.data?.message, ToastAndroid.SHORT)
+      } else {
+        console.log(error.message)
+        ToastAndroid.show(error.message, ToastAndroid.SHORT)
+      }
+    }
+  }
+  const appointmentCount = async () => {
+    try {
+      const api = await apiWithDoctorAuth()
+      const { data } = await api.get("doctor/api/count-appointment")
+
+      if (data.success) {
+        const appCount =
+          data.count.length > 0 ? data.count[0].totalAppointment : 0
+        setCount((prevState) => ({
+          ...prevState,
+          totalAppointment: appCount,
+        }))
+        console.log(data)
+      }
+    } catch (error) {
+      if (error.response?.data?.message) {
+        console.log(error.response?.data?.message)
+        ToastAndroid.show(error.response?.data?.message, ToastAndroid.SHORT)
+      } else {
+        console.log(error.message)
+        ToastAndroid.show(error.message, ToastAndroid.SHORT)
+      }
+    }
+  }
+  const earningCount = async () => {
+    try {
+      const api = await apiWithDoctorAuth()
+      const { data } = await api.get("doctor/api/count-amount")
+
+      if (data.success) {
+        const earCount = data.count.length > 0 ? data.count[0].totalEarning : 0
+        setCount((prevState) => ({
+          ...prevState,
+          totalEarnings: earCount,
+        }))
+      }
+    } catch (error) {
+      if (error.response?.data?.message) {
+        console.log(error.response?.data?.message)
+        ToastAndroid.show(error.response?.data?.message, ToastAndroid.SHORT)
+      } else {
+        console.log(error.message)
+        ToastAndroid.show(error.message, ToastAndroid.SHORT)
+      }
+    }
+  }
+
   return (
     <View
       style={[styles.dashboardContainer, { backgroundColor: colors.lightblue }]}
@@ -39,7 +191,9 @@ const DashboardScreen = () => {
             <Text style={[styles.boxTitle, { color: colors.gray }]}>
               Total Patient
             </Text>
-            <Text style={styles.boxSubTitle}>0</Text>
+            <Text style={[styles.boxSubTitle, { color: colors.text }]}>
+              {count.totalPatient}
+            </Text>
           </View>
         </View>
         <View style={[styles.boxItem, { backgroundColor: colors.white }]}>
@@ -48,7 +202,9 @@ const DashboardScreen = () => {
             <Text style={[styles.boxTitle, { color: colors.gray }]}>
               Total Appointment
             </Text>
-            <Text style={styles.boxSubTitle}>0</Text>
+            <Text style={[styles.boxSubTitle, { color: colors.text }]}>
+              {count.totalAppointment}
+            </Text>
           </View>
         </View>
         <View style={[styles.boxItem, { backgroundColor: colors.white }]}>
@@ -57,7 +213,9 @@ const DashboardScreen = () => {
             <Text style={[styles.boxTitle, { color: colors.gray }]}>
               Total Earnings
             </Text>
-            <Text style={styles.boxSubTitle}>0</Text>
+            <Text style={[styles.boxSubTitle, { color: colors.text }]}>
+              {count.totalEarnings}
+            </Text>
           </View>
         </View>
       </View>
@@ -71,7 +229,7 @@ const DashboardScreen = () => {
           <View style={styles.latestHeader}>
             <Text style={{ color: colors.gray }}>Patient</Text>
             <Text style={{ marginLeft: 80, color: colors.gray }}>Date</Text>
-            <Text style={{ color: colors.gray }}>Status</Text>
+            {/* <Text style={{ color: colors.gray }}>Status</Text> */}
           </View>
           {loading ? (
             <LottieView
@@ -82,15 +240,33 @@ const DashboardScreen = () => {
             />
           ) : (
             <FlatList
-              data={info}
-              keyExtractor={(item) => item.name}
+              data={appointments}
+              keyExtractor={(item) => item._id}
               renderItem={({ item }) => (
                 <AppointmentCard
-                  name={item.name}
-                  date={item.date}
-                  time={item.time}
+                  name={item.userData.name}
+                  date={item.slotDate}
+                  time={item.slotTime}
+                  image={item.userData.image}
+                  handleCancel={() => handleCancel(item._id)}
+                  handleComplete={() => handleComplete(item._id)}
+                  cancelled={item.cancelled}
+                  isComplet={item.isCompletted}
                 />
               )}
+              ListEmptyComponent={
+                <Text
+                  style={{
+                    color: colors.text,
+                    textAlign: "center",
+                    marginTop: "40%",
+                  }}
+                >
+                  No appointments yet
+                </Text>
+              }
+              refreshing={refreshing}
+              onRefresh={getAppointments}
             />
           )}
         </View>
@@ -163,7 +339,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 40,
+    paddingRight: 80,
   },
   latestText: {
     width: "90%",

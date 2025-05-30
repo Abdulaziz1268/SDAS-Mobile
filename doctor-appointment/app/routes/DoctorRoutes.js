@@ -8,7 +8,7 @@ import { dashboard, appointment, people } from "../../assets/index"
 import ProfileScreen from "../screens/ProfileScreen"
 // import colors from "../config/colors"
 import EditProfile from "../screens/Doctor/EditProfile"
-import ChangePassword from "../screens/Doctor/ChangePassword"
+import ChangePassword from "../screens/ChangePassword"
 import About from "../screens/About"
 import { useTheme } from "../Contexts/ThemeContext"
 
@@ -26,15 +26,11 @@ const DoctorTabNavigator = () => {
         tabBarInactiveBackgroundColor: colors.white,
         tabBarActiveBackgroundColor: colors.lightblue,
         tabBarStyle: {
-          borderRadius: 40,
           height: 60,
-          position: "absolute",
-          bottom: 10,
-          right: 10,
-          left: 10,
-          width: "90%",
-          borderTopWidth: 0,
-          alignSelf: "center",
+          paddingBottom: 0,
+          borderTopWidth: 2,
+          borderColor: colors.white,
+          elevation: 10,
         },
       }}
     >

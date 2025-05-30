@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState } from "react"
-import api from "../config/api"
+import { apiWithPatientAuth } from "../config/api"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { AppState } from "react-native"
 
@@ -10,11 +10,12 @@ export const UserProvider = ({ children }) => {
 
   const getUserData = async () => {
     try {
-      const token = await AsyncStorage.getItem("token")
-      if (token) {
-        const { data } = await api.get("/user/api/get-user", {
-          headers: { token },
-        })
+      const ptoken = await AsyncStorage.getItem("Ptoken")
+
+      if (ptoken) {
+        const api = await apiWithPatientAuth()
+        const { data } = await api.get("/user/api/get-user")
+
         if (data.success) setUserData(data.user)
       } else {
         setUserData(null)
@@ -34,7 +35,7 @@ export const UserProvider = ({ children }) => {
     return () => subscription.remove()
   }, [])
   return (
-    <UserContext.Provider value={{ userData, setUserData }}>
+    <UserContext.Provider value={{ userData, setUserData, getUserData }}>
       {children}
     </UserContext.Provider>
   )

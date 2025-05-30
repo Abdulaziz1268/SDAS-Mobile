@@ -1,86 +1,54 @@
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import {
   StyleSheet,
   Text,
   FlatList,
   TouchableOpacity,
   View,
+  ToastAndroid,
 } from "react-native"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 import colors from "../../config/colors"
 import DoctorCard from "../../components/DoctorCard"
 import { useTheme } from "../../Contexts/ThemeContext"
-
-const data = [
-  {
-    id: Math.random(),
-    name: "abdulazi",
-    availability: true,
-    speciality: "surgery",
-  },
-  {
-    id: Math.random(),
-    name: "khedir",
-    availability: true,
-    speciality: "optics",
-  },
-  {
-    id: Math.random(),
-    name: "muse",
-    availability: false,
-    speciality: "pediatrics",
-  },
-  {
-    id: Math.random(),
-    name: "doctor one",
-    availability: true,
-    speciality: "orthodontic",
-  },
-  {
-    id: Math.random(),
-    name: "doctor two",
-    availability: false,
-    speciality: "dentist",
-  },
-  {
-    id: Math.random(),
-    name: "doctor three",
-    availability: false,
-    speciality: "dentist",
-  },
-  {
-    id: Math.random(),
-    name: "doctor four",
-    availability: false,
-    speciality: "dentist",
-  },
-  {
-    id: Math.random(),
-    name: "doctor five",
-    availability: false,
-    speciality: "dentist",
-  },
-]
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import axios from "axios"
+import { apiWithPatientAuth } from "../../config/api"
+import AppModal from "../../components/AppModal"
 
 const spec = [
-  "sergeon",
-  "pediatrics",
-  "optics",
-  "orthodontic",
-  "dentist",
-  "Urology",
-  "Anesthesiology",
-  "Radiology",
-  "Oncology",
+  "Cardiologist",
+  "Dentist",
+  "General Doctor",
   "Neurology",
-  "Psychiatry",
+  "Orthopedic",
+  "Otology",
+  "Pediatrics",
+  "Surgery",
 ]
+
+const time = []
+
+for (let i = 8; i < 12; i++) {
+  time.push({ time: `${i}:00 AM` })
+  time.push({ time: `${i}:30 AM` })
+}
+
+for (let i = 1; i < 6; i++) {
+  time.push({ time: `${i}:00 PM` })
+  time.push({ time: `${i}:30 PM` })
+}
 
 const Doctors = () => {
   const { colors } = useTheme()
+  const [selectedDocId, setSelectedDocId] = useState()
   const [showFilter, setShowFilter] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [selectedFilter, setSelectedFilter] = useState([])
+  const [doctors, setDoctors] = useState()
+  const [filteredDoctors, setFilteredDoctors] = useState([])
+  const modalRef = useRef(null)
 
   const addToFilter = (item) => {
     setSelectedFilter((prevFilter) =>
@@ -88,6 +56,96 @@ const Doctors = () => {
         ? prevFilter.filter((filterItem) => filterItem !== item)
         : [...prevFilter, item]
     )
+  }
+
+  useEffect(() => {
+    if (!doctors) return
+
+    if (selectedFilter.length === 0) {
+      setFilteredDoctors(doctors)
+    } else {
+      const filtered = doctors.filter((doctor) =>
+        selectedFilter.includes(doctor.speciality)
+      )
+      setFilteredDoctors(filtered)
+    }
+  }, [selectedFilter, doctors])
+
+  const getDoctors = async () => {
+    try {
+      setRefreshing(true)
+      const token = await AsyncStorage.getItem("Ptoken")
+      if (!token) throw new Error("no authorization token found!")
+
+      const api = await apiWithPatientAuth()
+      const { data } = await api.get("user/api/get-doctors", {
+        headers: { token },
+      })
+      if (data.success) {
+        console.log(data)
+        setDoctors(data.doctors)
+        setRefreshing(false)
+      }
+    } catch (error) {
+      setRefreshing(false)
+      if (error.response?.data?.message) {
+        console.log(error.response?.data?.message)
+        ToastAndroid.show(error.response?.data?.message, ToastAndroid.SHORT)
+      } else {
+        console.log(error.message)
+      }
+    }
+  }
+
+  useEffect(() => {
+    getDoctors()
+  }, [])
+
+  const handleConfirm = async (
+    selectedDay,
+    selectedMonth,
+    selectedYear,
+    pressed,
+    Id
+  ) => {
+    const hour = new Date().getHours()
+    const minute = new Date().getMinutes()
+    const second = new Date().getSeconds()
+    const slotDate = new Date(
+      selectedYear,
+      selectedMonth,
+      selectedDay,
+      hour,
+      minute,
+      second
+    ).toString()
+    // ToastAndroid.show(slotDate + pressed, ToastAndroid.SHORT)
+    // console.log({ docId: Id, slotDate: slotDate, slotTime: pressed })
+    try {
+      const api = await apiWithPatientAuth()
+      const { data } = await api.post("user/api/book-appointement", {
+        docId: Id,
+        slotDate: slotDate,
+        slotTime: pressed,
+      })
+
+      if (data.success) {
+        ToastAndroid.show("Booked successfully", ToastAndroid.SHORT)
+      }
+    } catch (error) {
+      if (error.response?.data?.message) {
+        ToastAndroid.show(error.response.data.message, ToastAndroid.SHORT)
+        console.log(error.response.data)
+      } else {
+        console.log(error.message)
+        ToastAndroid.show(error.message, ToastAndroid.SHORT)
+      }
+    }
+  }
+
+  const openModal = (Id) => {
+    setSelectedDocId(Id)
+    modalRef.current?.open()
   }
 
   return (
@@ -144,19 +202,35 @@ const Doctors = () => {
         </View>
       )}
       <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
+        data={filteredDoctors}
+        keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <DoctorCard
             name={item.name}
-            availability={item.availability}
+            availability={item.available}
             speciality={item.speciality}
-            description="the description will go here"
-            fee={100}
-            id="id"
+            description={item.about}
+            fee={item.fees}
+            onBookPress={() => openModal(item._id)}
+            image={item.image}
           />
         )}
         style={styles.list}
+        ListEmptyComponent={
+          <Text
+            style={{ color: colors.text, marginTop: 50, textAlign: "center" }}
+          >
+            No Doctors Found
+          </Text>
+        }
+        refreshing={refreshing}
+        onRefresh={getDoctors}
+      />
+      <AppModal
+        modalRef={modalRef}
+        handleConfirm={handleConfirm}
+        timestamp={time}
+        Id={selectedDocId}
       />
     </View>
   )

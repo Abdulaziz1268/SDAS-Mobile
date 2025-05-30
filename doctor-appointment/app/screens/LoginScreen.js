@@ -31,8 +31,9 @@ export default function LoginScreen({ navigation }) {
   const { colors, isDark, toggleTheme } = useTheme()
   const [visible, setVisible] = useState(false)
   const { allowFP } = useContext(PrefContext)
-  const { setPatientToken, setDoctorToken } = useContext(AuthContext)
-  const [user, setUser] = useState("patient")
+  const { setPatientToken, setDoctorToken, user, setUser } =
+    useContext(AuthContext)
+  // const [user, setUser] = useState("patient")
 
   const handleShowPassword = () => {
     setVisible((prevState) => !prevState)
@@ -61,6 +62,7 @@ export default function LoginScreen({ navigation }) {
               if (data.success) {
                 const token = data.token
                 await AsyncStorage.setItem("Ptoken", token)
+                await AsyncStorage.setItem("user", "patient")
                 setPatientToken(true)
                 console.log("logged in successfully")
                 ToastAndroid.show(data.message, ToastAndroid.SHORT)
@@ -69,7 +71,8 @@ export default function LoginScreen({ navigation }) {
               const { data } = await api.post("/doctor/api/login", values)
               if (data.success) {
                 const token = data.dtoken
-                await AsyncStorage.setItem("Dtoken", token)
+                await AsyncStorage.setItem("dtoken", token)
+                await AsyncStorage.setItem("user", "doctor")
                 setDoctorToken(true)
                 ToastAndroid.show(data.message, ToastAndroid.SHORT)
               }

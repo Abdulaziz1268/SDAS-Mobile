@@ -2,7 +2,7 @@ import React from "react"
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from "react-native"
 import { useTheme } from "../Contexts/ThemeContext"
 
-export default function CustomAlert({ visible, onClose, onSave, message }) {
+export default function AppAlert({ visible, onClose, onSave, message }) {
   const { colors } = useTheme()
 
   return (
@@ -62,11 +62,11 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: 10,
     // paddingHorizontal: 20,
-    width: 80,
+    width: 120,
     borderRadius: 10,
   },
   buttonsContainer: {
     flexDirection: "row",
-    gap: 10,
+    gap: 15,
   },
 })

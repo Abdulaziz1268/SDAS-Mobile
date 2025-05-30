@@ -19,7 +19,16 @@ import {
 } from "react-native-popup-menu"
 import { useTheme } from "../Contexts/ThemeContext"
 
-const AppointmentCard = ({ name, date, time, image = placeHolder }) => {
+const AppointmentCard = ({
+  name,
+  date,
+  time,
+  image,
+  handleCancel,
+  handleComplete,
+  cancelled = false,
+  isComplet = false,
+}) => {
   const { colors } = useTheme()
   return (
     <View
@@ -28,38 +37,45 @@ const AppointmentCard = ({ name, date, time, image = placeHolder }) => {
         { borderColor: colors.lightgray, backgroundColor: colors.white },
       ]}
     >
-      <View style={styles.nameContainer}>
-        <Image source={docImage} style={styles.profileImage} />
-        <Text style={[styles.nameText, { color: colors.text }]}>{name}</Text>
-      </View>
-      <View style={styles.bottomContainer}>
-        <View style={styles.dateContainer}>
-          <Text style={{ color: colors.text }}>{date}</Text>
-          <Text style={{ color: colors.text }}>{time}</Text>
+      <View style={[styles.topContainer]}>
+        <View style={styles.nameContainer}>
+          <Image
+            source={image ? { uri: image } : placeHolder}
+            style={styles.profileImage}
+          />
+          <Text style={[styles.nameText, { color: colors.text }]}>{name}</Text>
+        </View>
+        <View style={styles.bottomContainer}>
+          <View style={styles.dateContainer}>
+            <Text style={{ color: colors.text }}>{date}</Text>
+            <Text style={{ color: colors.text }}>{time}</Text>
+          </View>
         </View>
         {/* <View style={styles.approvalContainer}>
           <TouchableOpacity>
-            <MaterialCommunityIcons name="check-bold" size={25} color="green" />
+          <MaterialCommunityIcons name="check-bold" size={25} color="green" />
           </TouchableOpacity>
           <TouchableOpacity>
-            <MaterialCommunityIcons
-              name="dots-vertical"
-              size={25}
-              color="black"
-            />
+          <MaterialCommunityIcons
+          name="dots-vertical"
+          size={25}
+          color="black"
+          />
           </TouchableOpacity>
-        </View> */}
+          </View> */}
         <Menu>
           <MenuTrigger
             customStyles={{
               TriggerTouchableComponent: TouchableOpacity,
             }}
           >
-            <MaterialCommunityIcons
-              name="dots-vertical"
-              size={25}
-              color={colors.text}
-            />
+            {!cancelled && !isComplet && (
+              <MaterialCommunityIcons
+                name="dots-vertical"
+                size={25}
+                color={colors.text}
+              />
+            )}
           </MenuTrigger>
           <MenuOptions
             customStyles={{
@@ -82,24 +98,55 @@ const AppointmentCard = ({ name, date, time, image = placeHolder }) => {
               },
             }}
           >
-            <MenuOption
-              onSelect={() =>
-                ToastAndroid.show("Completed", ToastAndroid.SHORT)
-              }
-              text="✅ Completed"
-            />
-            <MenuOption
-              onSelect={() => ToastAndroid.show("Canceled", ToastAndroid.SHORT)}
-              text="❌ Cancel"
-            />
+            <MenuOption onSelect={handleComplete} text="✅ Completed" />
+            <MenuOption onSelect={handleCancel} text="❌ Cancel" />
           </MenuOptions>
         </Menu>
       </View>
+      {cancelled ? (
+        <View
+          style={[
+            styles.status,
+            {
+              backgroundColor: colors.lightred,
+              borderColor: colors.darkred,
+              marginTop: 10,
+            },
+          ]}
+        >
+          <Text style={{ textAlign: "center", color: colors.darkred }}>
+            Cancelled
+          </Text>
+        </View>
+      ) : isComplet ? (
+        <View
+          style={[
+            styles.status,
+            {
+              backgroundColor: colors.lightgreen,
+              borderColor: colors.darkgreen,
+              marginTop: 10,
+            },
+          ]}
+        >
+          <Text style={{ textAlign: "center", color: colors.darkgreen }}>
+            Completed
+          </Text>
+        </View>
+      ) : (
+        ""
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  status: {
+    width: "auto",
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 5,
+  },
   approvalContainer: {
     gap: 20,
     width: 30,
@@ -112,17 +159,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cardContainer: {
-    flexDirection: "row",
-    width: "100%",
-    height: 100,
-    // justifyContent: "space-between",
-    overflow: "hidden",
-    alignItems: "center",
-
+    height: "auto",
     borderWidth: 2,
-    marginVertical: 3,
+    marginVertical: 5,
     borderRadius: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+  },
+  topContainer: {
+    overflow: "hidden",
     paddingRight: 20,
+    alignItems: "center",
+    flexDirection: "row",
+    width: "auto",
   },
   dateContainer: {
     // paddingRight: 70,
@@ -140,9 +189,9 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     marginRight: 10,
-    // borderRadius: 25,
-    borderTopRightRadius: 10,
-    borderBottomRightRadius: 10,
+    borderRadius: 10,
+    // borderTopRightRadius: 10,
+    // borderBottomRightRadius: 10,
   },
 })
 

@@ -1,18 +1,38 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"
 import axios from "axios"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+
+const baseURL = "http://192.168.244.113:4300"
 
 const api = axios.create({
-  baseURL: "http://192.168.106.178:4300",
+  baseURL,
   timeout: 10000,
 })
 
-api.interceptors.request.use(
-  async (config) => {
-    const token = await AsyncStorage.getItem("token")
-    if (token) config.headers.Authorization = `Bearer ${token}`
-    return config
-  },
-  (error) => Promise.reject(error)
-)
+// Use this function for authenticated requests
+export const apiWithPatientAuth = async () => {
+  const token = await AsyncStorage.getItem("Ptoken")
+  const instance = axios.create({
+    baseURL,
+    timeout: 10000,
+    headers: {
+      // Authorization: token ? `Bearer ${token}` : "",
+      token,
+    },
+  })
+  return instance
+}
+
+export const apiWithDoctorAuth = async () => {
+  const dtoken = await AsyncStorage.getItem("dtoken")
+  const instance = axios.create({
+    baseURL,
+    timeout: 10000,
+    headers: {
+      // Authorization: token ? `Bearer ${token}` : "",
+      dtoken,
+    },
+  })
+  return instance
+}
 
 export default api

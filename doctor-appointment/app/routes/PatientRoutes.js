@@ -9,7 +9,7 @@ import { dashboard, appointment, people } from "../../assets/index"
 import ProfileScreen from "../screens/ProfileScreen"
 import colors from "../config/colors"
 import EditProfile from "../screens/Patient/EditProfile"
-import ChangePassword from "../screens/Patient/ChangePassword"
+import ChangePassword from "../screens/ChangePassword"
 import Doctors from "../screens/Patient/Doctors"
 import About from "../screens/About"
 import Bookings from "../screens/Patient/Bookings"
@@ -29,13 +29,9 @@ const PatientTabNavigator = () => {
         tabBarInactiveBackgroundColor: colors.white,
         tabBarActiveBackgroundColor: colors.lightblue,
         tabBarStyle: {
-          // borderTopLeftRadius: 40,
-          // borderTopRightRadius: 40,
           height: 60,
-          position: "absolute",
-          right: 10,
-          left: 10,
           borderTopWidth: 0,
+          paddingBottom: 0,
           elevation: 20,
         },
       }}

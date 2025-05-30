@@ -1,26 +1,27 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons"
-import React, { useState } from "react"
+import { useState } from "react"
 import {
   View,
   Text,
   TouchableOpacity,
-  Modal,
   StyleSheet,
-  Alert,
   ScrollView,
   Pressable,
   ToastAndroid,
+  FlatList,
 } from "react-native"
+
 import AppButton from "./AppButton"
-import { FlatList } from "react-native-gesture-handler"
 import { useTheme } from "../Contexts/ThemeContext"
+import AppAlert from "./AppAlert"
+import { useNavigation } from "@react-navigation/native"
 
 const daysInMonth = (month, year) => new Date(year, month + 1, 0).getDate()
 
-const AppCalendar = ({ handleConfirm, handleModal, timestamp }) => {
+const AppCalendar = ({ handleConfirm, modalRef, timestamp, Id }) => {
   const { colors } = useTheme()
   const [pressed, setPressed] = useState(null)
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const navigation = useNavigation()
 
   const [selectedDay, setSelectedDay] = useState(selectedDate.getDate())
   const [selectedMonth, setSelectedMonth] = useState(selectedDate.getMonth())
@@ -29,6 +30,7 @@ const AppCalendar = ({ handleConfirm, handleModal, timestamp }) => {
   const [selectedMinute, setSelectedMinute] = useState(
     selectedDate.getMinutes()
   )
+  const [showAlert, setShowAlert] = useState(false)
 
   const generateCalendarMatrix = (month, year) => {
     const firstDayOfMonth = new Date(year, month, 1).getDay() // 0 (Sun) to 6 (Sat)
@@ -83,13 +85,22 @@ const AppCalendar = ({ handleConfirm, handleModal, timestamp }) => {
     </TouchableOpacity>
   )
 
+  const isPastDate = (day) => {
+    const selected = new Date(selectedYear, selectedMonth, day)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return selected < today
+  }
+
   const totalDays = daysInMonth(selectedMonth, selectedYear)
   const days = Array.from({ length: totalDays }, (_, i) => i + 1)
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const minutes = Array.from({ length: 60 }, (_, i) => i)
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.lightblue }]}
+    >
       <View
         style={[styles.dateContainer, { backgroundColor: colors.lightgray }]}
       >
@@ -143,10 +154,11 @@ const AppCalendar = ({ handleConfirm, handleModal, timestamp }) => {
           (week, index) => (
             <View key={index} style={styles.weekRow}>
               {week.map((day, i) => (
-                <TouchableOpacity
-                  key={i}
+                <Pressable
+                  key={`${selectedMonth}-${selectedYear}-${day}-${i}`}
                   style={[
-                    [styles.dayButton, { backgroundColor: colors.white }],
+                    styles.dayButton,
+                    { backgroundColor: colors.white },
                     day === selectedDay &&
                       selectedMonth >= new Date().getMonth() && {
                         backgroundColor: colors.blue,
@@ -164,12 +176,10 @@ const AppCalendar = ({ handleConfirm, handleModal, timestamp }) => {
                     //   bordercolor: colors.white,
                     // },
                   ]}
-                  onPress={() => day && setSelectedDay(day)}
-                  disabled={
-                    !day ||
-                    (day < new Date().getDate() &&
-                      selectedMonth < new Date().getMonth() + 1)
-                  }
+                  onPress={() => {
+                    day && setSelectedDay(day)
+                  }}
+                  disabled={!day || isPastDate(day)}
                 >
                   <Text
                     style={[
@@ -186,7 +196,7 @@ const AppCalendar = ({ handleConfirm, handleModal, timestamp }) => {
                   >
                     {day || ""}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           )
@@ -244,28 +254,21 @@ const AppCalendar = ({ handleConfirm, handleModal, timestamp }) => {
               "please select date and time",
               ToastAndroid.SHORT
             )
-          Alert.alert("confirm", "confirm selected date", [
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-            {
-              text: "Ok",
-              onPress: () => {
-                handleConfirm(
-                  pressed,
-                  selectedDay,
-                  selectedMonth,
-                  selectedYear,
-                  new Date().getHours(),
-                  new Date().getMinutes(),
-                  new Date().getSeconds()
-                )
-                handleModal()
-              },
-            },
-          ])
+          setShowAlert(true)
         }}
+      />
+      <AppAlert
+        visible={showAlert}
+        onClose={() => setShowAlert(false)}
+        onSave={() => {
+          setShowAlert(false)
+          handleConfirm(selectedDay, selectedMonth, selectedYear, pressed, Id)
+          modalRef.current?.close()
+          setTimeout(() => {
+            navigation.navigate("Bookings")
+          }, 500)
+        }}
+        message="Confirm Selected Date and Time"
       />
     </ScrollView>
   )

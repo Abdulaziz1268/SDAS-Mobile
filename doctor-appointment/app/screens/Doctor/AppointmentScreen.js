@@ -1,44 +1,135 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import {
-  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
+  ToastAndroid,
   View,
+  TouchableOpacity,
 } from "react-native"
 import LottieView from "lottie-react-native"
 
-import colors from "../../config/colors"
 import AppointmentCard from "../../components/AppointmentCard"
 import { useTheme } from "../../Contexts/ThemeContext"
+import { apiWithDoctorAuth } from "../../config/api"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 
-const info = [
-  { name: "abdu", date: "2/3/2025", time: "8:00 AM" },
-  { name: "kedir", date: "2/3/2025", time: "8:30 AM" },
-  { name: "muse", date: "2/3/2025", time: "9:00 AM" },
-  { name: "abdul", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulas", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abduldfasdfffsfsfdss", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulsd", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulff", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulvv", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abddfulvv", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdfdulvv", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulsdvv", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdsdfulvv", date: "2/3/2025", time: "9:30 AM" },
-  { name: "abdulvvsdf", date: "2/3/2025", time: "9:30 AM" },
-  { name: "afsbdulvv", date: "2/3/2025", time: "9:30 AM" },
-  { name: "fdabdulvv", date: "2/3/2025", time: "9:30 AM" },
-]
+const filterCriteria = ["Cancelled", "Completed", "Pending"]
 
 const AppointmentScreen = () => {
-  const [loading, setLoading] = useState(true)
   const { colors } = useTheme()
+
+  const [loading, setLoading] = useState(true)
+  const [firstTime, setFirstTime] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [appointments, setAppointments] = useState([])
+  const [filteredAppointments, setFilteredAppointments] = useState([])
+  const [selectedFilter, setSelectedFilter] = useState([])
+  const [showFilter, setShowFilter] = useState(false)
+
+  const addToFilter = (item) => {
+    setSelectedFilter((prevFilter) =>
+      prevFilter.includes(item)
+        ? prevFilter.filter((filterItem) => filterItem !== item)
+        : [...prevFilter, item]
+    )
+  }
+
   useEffect(() => {
-    setTimeout(() => {
-      setLoading(false)
-    }, 2000)
+    if (!appointments) return
+
+    if (selectedFilter.length === 0) {
+      setFilteredAppointments(appointments)
+    } else {
+      const filtered = appointments.filter(
+        (appointment) =>
+          (selectedFilter.includes("Cancelled") && appointment.cancelled) ||
+          (selectedFilter.includes("Completed") && appointment.isCompletted) ||
+          (selectedFilter.includes("Pending") &&
+            !appointment.isCompletted &&
+            !appointment.cancelled)
+      )
+
+      setFilteredAppointments(filtered)
+    }
+  }, [selectedFilter, appointments])
+
+  useEffect(() => {
+    getAppointments()
   }, [])
+
+  const getAppointments = async () => {
+    try {
+      if (!firstTime) setRefreshing(true)
+
+      setFirstTime(false)
+      const api = await apiWithDoctorAuth()
+      const { data } = await api.get("doctor/api/get-appointment")
+      console.log(data)
+      if (data.success) {
+        // const today = new Date().toISOString().split("T")[0]
+        // const recent = data.appointments.filter(
+        //   (appintment) => today === formater(appintment.slotDate)
+        // )
+        // console.log(recent)
+        setAppointments(data.appointments)
+        console.log(appointments)
+        setLoading(false)
+        setRefreshing(false)
+      }
+    } catch (error) {
+      setLoading(false)
+      setRefreshing(false)
+      if (error.response?.data?.message) {
+        console.log(error.response?.data?.message)
+      } else {
+        console.log(error.message)
+      }
+    }
+  }
+
+  const handleCancel = async (appointmentId) => {
+    try {
+      const api = await apiWithDoctorAuth()
+      const { data } = await api.post("doctor/api/cancel-appointment", {
+        appointmentId,
+      })
+      if (data.success) {
+        ToastAndroid.show("cancelled", ToastAndroid.SHORT)
+        setAppointments((prev) =>
+          prev.map((appt) =>
+            appt._id === appointmentId ? { ...appt, cancelled: true } : appt
+          )
+        )
+      } else {
+        ToastAndroid.show(data.message, ToastAndroid.SHORT)
+      }
+    } catch (error) {
+      console.log(error.message)
+    }
+  }
+
+  const handleComplete = async (appointmentId) => {
+    try {
+      const api = await apiWithDoctorAuth()
+      const { data } = await api.post("doctor/api/complete-appointment", {
+        appointmentId,
+      })
+      if (data.success) {
+        ToastAndroid.show("Completed", ToastAndroid.SHORT)
+        setAppointments((prev) =>
+          prev.map((appt) =>
+            appt._id === appointmentId ? { ...appt, isCompletted: true } : appt
+          )
+        )
+      } else {
+        ToastAndroid.show(data.message, ToastAndroid.SHORT)
+      }
+    } catch (error) {
+      console.log(error.message)
+    }
+  }
+
   return (
     <View
       style={[
@@ -49,8 +140,66 @@ const AppointmentScreen = () => {
       <View style={[styles.latestHeader, { backgroundColor: colors.white }]}>
         <Text style={{ color: colors.gray }}>Patient</Text>
         <Text style={{ marginLeft: 120, color: colors.gray }}>Date</Text>
-        <Text style={{ color: colors.gray }}>Status</Text>
+        {/* <Text style={{ color: colors.gray }}>Status</Text> */}
       </View>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "flex-end",
+          width: "100%",
+          paddingHorizontal: 20,
+          paddingVertical: 5,
+        }}
+      >
+        {selectedFilter.length !== 0 && (
+          <TouchableOpacity
+            style={[styles.clearFilter, { backgroundColor: colors.blue }]}
+            onPress={() => setSelectedFilter([])}
+          >
+            <Text style={{ color: colors.white }}>Clear Filter</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={() => setShowFilter((prev) => !prev)}>
+          <MaterialCommunityIcons
+            name="filter-outline"
+            size={30}
+            color={colors.blue}
+          />
+        </TouchableOpacity>
+      </View>
+      {showFilter && (
+        <View
+          style={[styles.filterContainer, { backgroundColor: colors.white }]}
+        >
+          {filterCriteria.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.filterItem,
+                {
+                  backgroundColor: selectedFilter.includes(item)
+                    ? colors.blue
+                    : colors.white,
+                  borderColor: colors.blue,
+                },
+              ]}
+              onPress={() => {
+                addToFilter(item)
+              }}
+            >
+              <Text
+                style={{
+                  color: selectedFilter.includes(item)
+                    ? colors.white
+                    : colors.black,
+                }}
+              >
+                {item}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       {loading ? (
         <LottieView
           source={require("../../../assets/Animations/barSpinner.json")}
@@ -60,15 +209,29 @@ const AppointmentScreen = () => {
         />
       ) : (
         <FlatList
-          data={info}
-          keyExtractor={(item) => item.name}
+          data={filteredAppointments}
+          keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
             <AppointmentCard
-              name={item.name}
-              date={item.date}
-              time={item.time}
+              name={item.userData.name}
+              date={item.slotDate}
+              time={item.slotTime}
+              image={item.userData.image}
+              handleCancel={() => handleCancel(item._id)}
+              handleComplete={() => handleComplete(item._id)}
+              cancelled={item.cancelled}
+              isComplet={item.isCompletted}
             />
           )}
+          ListEmptyComponent={
+            <Text
+              style={{ textAlign: "center", marginTop: 70, color: colors.text }}
+            >
+              No Appointments yet
+            </Text>
+          }
+          refreshing={refreshing}
+          onRefresh={getAppointments}
         />
       )}
     </View>
@@ -93,6 +256,8 @@ const styles = StyleSheet.create({
   // },
   latestHeader: {
     flexDirection: "row",
+    paddingRight: 80,
+    paddingLeft: 30,
     justifyContent: "space-around",
     marginBottom: 10,
     width: "100%",
@@ -104,6 +269,27 @@ const styles = StyleSheet.create({
     marginTop: "60%",
     width: 200,
     height: 200,
+  },
+  clearFilter: {
+    padding: 5,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  filterContainer: {
+    width: "95%",
+    padding: 10,
+    flexDirection: "row",
+    gap: 10,
+    flexWrap: "wrap",
+    borderRadius: 20,
+  },
+  filterItem: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderWidth: 1,
+
+    borderRadius: 10,
+    position: "relative",
   },
 })
 
